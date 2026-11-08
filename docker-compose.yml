@@ -1,0 +1,52 @@
+services:
+  db:
+    image: postgres:15
+    container_name: devpulse-db
+    environment:
+      POSTGRES_DB: devpulse
+      POSTGRES_USER: devpulse
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-devpulse_local}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U devpulse -d devpulse"]
+      interval: 5s
+      timeout: 3s
+      retries: 15
+
+  backend:
+    build: ./backend
+    image: devpulse-backend:latest
+    container_name: devpulse-backend
+    ports:
+      - "127.0.0.1:8000:8000"
+    env_file:
+      - path: ./backend/.env
+        required: false
+    environment:
+      DATABASE_URL: postgresql+psycopg://devpulse:${POSTGRES_PASSWORD:-devpulse_local}@db:5432/devpulse
+      DEVPULSE_REPO: /workspace/project
+      DEVPULSE_WORKSPACE: /workspace/project/workspace
+    volumes:
+      - .:/workspace/project
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')"]
+      interval: 5s
+      timeout: 3s
+      retries: 15
+
+  frontend:
+    build: ./frontend
+    image: devpulse-frontend:latest
+    container_name: devpulse-frontend
+    ports:
+      - "127.0.0.1:5173:5173"
+    depends_on:
+      backend:
+        condition: service_healthy
+
+volumes:
+  postgres_data:

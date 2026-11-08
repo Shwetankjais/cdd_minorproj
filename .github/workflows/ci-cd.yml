@@ -1,0 +1,136 @@
+name: DevPulse CI/CD
+
+on: [push, pull_request]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/requirements*.txt
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - name: Validate backend dependencies and syntax
+        working-directory: backend
+        run: |
+          pip install -r requirements.txt
+          pip check
+          python -m compileall -q app tests
+          python -c 'import app.main'
+      - name: Validate frontend dependencies
+        if: hashFiles('frontend/package.json') != ''
+        working-directory: frontend
+        run: npm ci
+      - run: docker compose config --quiet
+
+  test:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/requirements*.txt
+      - name: Run backend tests
+        working-directory: backend
+        run: |
+          pip install -r requirements-dev.txt
+          python -m pytest -q
+      - uses: actions/setup-node@v4
+        if: hashFiles('frontend/package.json') != ''
+        with:
+          node-version: "24"
+      - name: Test and build frontend
+        if: hashFiles('frontend/package.json') != ''
+        working-directory: frontend
+        env:
+          CI: "true"
+        run: |
+          npm ci
+          npm run test --if-present
+          npm run build
+
+  docker:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build and smoke-test backend image with SQLite
+        run: |
+          docker compose build backend
+          docker run -d --name devpulse-image-check -p 127.0.0.1:8000:8000 devpulse-backend:latest
+          curl --fail --retry 15 --retry-all-errors --retry-delay 2 --max-time 5 http://localhost:8000/api/health
+      - name: Build frontend image
+        if: hashFiles('frontend/Dockerfile') != ''
+        run: docker compose build frontend
+      - name: Clean up backend smoke test
+        if: always()
+        run: docker rm -f devpulse-image-check || true
+
+  deploy:
+    needs: docker
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify the Compose deployment
+        run: |
+          services=(db backend)
+          if [[ -f frontend/Dockerfile ]]; then services+=(frontend); fi
+          docker compose up --build --wait --wait-timeout 120 "${services[@]}"
+          curl --fail http://localhost:8000/api/health | jq -e '.database == "postgresql"'
+          curl --fail 'http://localhost:8000/api/deployments?hours=2' | jq -e 'length > 0'
+          if [[ -f frontend/Dockerfile ]]; then
+            curl --fail --retry 10 --retry-all-errors --retry-delay 1 --max-time 5 http://localhost:5173/
+          fi
+      - name: Notify DevPulse of verified deployment
+        if: github.event_name == 'push'
+        env:
+          DEVPULSE_WEBHOOK_URL: ${{ secrets.DEVPULSE_WEBHOOK_URL }}
+          GITHUB_WEBHOOK_SECRET: ${{ secrets.DEVPULSE_WEBHOOK_SECRET }}
+        run: |
+          if [[ -z "$DEVPULSE_WEBHOOK_URL" && -z "$GITHUB_WEBHOOK_SECRET" ]]; then
+            echo "DevPulse webhook delivery is not configured."
+            exit 0
+          fi
+          python - <<'PY'
+          import hashlib
+          import hmac
+          import json
+          import os
+          import urllib.request
+
+          url = os.environ["DEVPULSE_WEBHOOK_URL"]
+          secret = os.environ["GITHUB_WEBHOOK_SECRET"]
+          if not url.startswith("https://") or not secret:
+              raise SystemExit("Configure an HTTPS DevPulse webhook URL and signing secret.")
+          body = json.dumps({
+              "repository": {"full_name": os.environ["GITHUB_REPOSITORY"]},
+              "run_id": os.environ["GITHUB_RUN_ID"],
+              "run_attempt": os.environ["GITHUB_RUN_ATTEMPT"],
+              "sha": os.environ["GITHUB_SHA"],
+          }).encode()
+          signature = hmac.new(secret.encode(), body, hashlib.sha256).hexdigest()
+          request = urllib.request.Request(url, data=body, headers={
+              "Content-Type": "application/json",
+              "X-GitHub-Event": "devpulse_verification",
+              "X-Hub-Signature-256": f"sha256={signature}",
+          })
+          with urllib.request.urlopen(request, timeout=15) as response:
+              print(f"DevPulse notification delivered ({response.status}).")
+          PY
+      - name: Print service logs on failure
+        if: failure()
+        run: docker compose logs
+      - name: Clean up verification deployment
+        if: always()
+        run: docker compose down -v
