@@ -7,17 +7,20 @@ permissions:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
           cache: pip
           cache-dependency-path: backend/requirements*.txt
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: "24"
+          package-manager-cache: false
       - name: Validate backend dependencies and syntax
         working-directory: backend
         run: |
@@ -33,10 +36,12 @@ jobs:
 
   test:
     needs: build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
           cache: pip
@@ -46,10 +51,11 @@ jobs:
         run: |
           pip install -r requirements-dev.txt
           python -m pytest -q
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         if: hashFiles('frontend/package.json') != ''
         with:
           node-version: "24"
+          package-manager-cache: false
       - name: Test and build frontend
         if: hashFiles('frontend/package.json') != ''
         working-directory: frontend
@@ -62,9 +68,11 @@ jobs:
 
   docker:
     needs: test
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
       - name: Build and smoke-test backend image with SQLite
         run: |
           docker compose build backend
@@ -79,9 +87,11 @@ jobs:
 
   deploy:
     needs: docker
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
       - name: Verify the Compose deployment
         run: |
           services=(db backend)
