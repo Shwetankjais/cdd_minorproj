@@ -39,7 +39,11 @@ def client(tmp_path):
 
 def test_health_projects_and_seeded_history(client):
     assert client.get("/api/health").json() == {"status": "ok", "database": "sqlite"}
-    assert client.get("/api/projects").json()[0]["id"] == DEFAULT_PROJECT
+    project = client.get("/api/projects").json()[0]
+    assert project["id"] == DEFAULT_PROJECT
+    assert project["displayName"] == "cdd_minorproj"
+    assert project["isCurrent"]
+    assert 0 <= project["passRate"] <= 100
     summary = client.get("/api/pipeline/summary").json()
     assert summary["total_runs"] == 10
     runs = client.get("/api/pipeline/runs", params={"status": "failure", "search": "login"}).json()
@@ -132,7 +136,10 @@ def test_docker_fallback(client, monkeypatch):
         raise FileNotFoundError
 
     monkeypatch.setattr(docker_monitor.subprocess, "run", unavailable)
-    data = client.get("/api/docker/status").json()
+    data = client.get("/api/docker/status?format=detail").json()
     assert data["available"] is False
     assert len(data["containers"]) == 3
     assert {item["status"] for item in data["containers"]} == {"unavailable"}
+    cards = client.get("/api/docker/status").json()
+    assert len(cards) == 3
+    assert all(card["id"] == card["name"] and card["ports"] == "—" for card in cards)

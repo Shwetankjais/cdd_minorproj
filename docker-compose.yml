@@ -43,7 +43,12 @@ services:
     image: devpulse-frontend:latest
     container_name: devpulse-frontend
     ports:
-      - "127.0.0.1:5173:5173"
+      - "127.0.0.1:5173:80"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1/api/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 15
     depends_on:
       backend:
         condition: service_healthy

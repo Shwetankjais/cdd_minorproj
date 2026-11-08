@@ -17,8 +17,28 @@ router = APIRouter(prefix="/api")
 
 @router.get("/projects")
 def projects(db: Session = Depends(get_db)):
-    names = {DEFAULT_PROJECT, *db.scalars(select(PipelineRun.project).distinct())}
-    return [{"id": name, "name": name.split("/")[1], "full_name": name} for name in sorted(names)]
+    rows = db.execute(
+        select(PipelineRun.project, PipelineRun.payload).order_by(PipelineRun.created_at.desc())
+    )
+    history_by_project = {DEFAULT_PROJECT: []}
+    for project, payload in rows:
+        history_by_project.setdefault(project, []).append(payload)
+    result = []
+    for name, history in sorted(history_by_project.items()):
+        display_name = name.split("/")[1]
+        completed = [run for run in history if run.get("status") == "completed"]
+        pass_rate = round(100 * sum(run.get("conclusion") == "success" for run in completed)
+                          / len(completed), 1) if completed else None
+        latest = history[0] if history else {}
+        result.append({
+            "id": name, "name": display_name, "full_name": name, "displayName": display_name,
+            "isCurrent": name == DEFAULT_PROJECT, "passRate": pass_rate,
+            "lastAuthor": latest.get("author") or "Unavailable",
+            "status": {"success": "Healthy", "failure": "Failing"}.get(
+                completed[0].get("conclusion") if completed else None, "Unknown"
+            ),
+        })
+    return result
 
 
 def simulation_state(run):

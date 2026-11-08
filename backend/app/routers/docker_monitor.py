@@ -1,6 +1,7 @@
 import json
 import subprocess
 from datetime import datetime, timezone
+from typing import Literal
 
 from fastapi import APIRouter
 
@@ -8,8 +9,7 @@ router = APIRouter(prefix="/api/docker")
 NAMES = ("devpulse-frontend", "devpulse-backend", "devpulse-db")
 
 
-@router.get("/status")
-def status():
+def inspect_containers():
     found = {}
     available = False
     try:
@@ -36,3 +36,23 @@ def status():
         found.get(name, {"name": name, "status": fallback, "image": None, "ports": {}, "uptime_seconds": None})
         for name in NAMES
     ]}
+
+
+@router.get("/status")
+def status(format: Literal["dashboard", "detail"] = "dashboard"):
+    result = inspect_containers()
+    if format == "detail":
+        return result
+
+    containers = []
+    for container in result["containers"]:
+        published = []
+        for port, bindings in container["ports"].items():
+            published.extend(f"{binding['HostPort']} → {port}" for binding in bindings or [])
+        seconds = container["uptime_seconds"]
+        containers.append({
+            **container, "id": container["name"], "ports": ", ".join(published) or "—",
+            "uptime": f"{seconds // 60}m {seconds % 60}s" if seconds is not None else "—",
+            "cpu": "—", "memory": "—",
+        })
+    return containers
