@@ -9,9 +9,9 @@ import {
   Play,
   RotateCcw,
   Check,
-  CheckCircle2,
   Clock,
   Sparkles,
+  Menu,
 } from 'lucide-react';
 import { useThemeAndProject } from '../../context/ThemeAndProjectContext';
 
@@ -19,6 +19,7 @@ export default function Header() {
   const {
     isDark,
     toggleTheme,
+    toggleSidebar,
     projects,
     activeProject,
     setActiveProject,
@@ -58,24 +59,35 @@ export default function Header() {
   };
 
   return (
-    <header className="px-6 py-4 bg-white/80 dark:bg-[#0B1120]/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 sticky top-0 z-20 transition-colors duration-200">
+    <header className="px-4 sm:px-6 py-4 bg-white/80 dark:bg-[#0B1120]/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 sticky top-0 z-30 transition-colors duration-200">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        {/* Left: Dashboard Title & Subheading */}
-        <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-xl md:text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
-              Welcome to DevPulse 👋
-            </h1>
-            {isSimulating && (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-500 border border-amber-500/20 animate-pulse">
-                <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
-                Simulating Live ({simPercent}%)
-              </span>
-            )}
+        {/* Left: Hamburger (mobile/split-screen) + Dashboard Title & Subheading */}
+        <div className="flex items-center gap-3">
+          {/* Hamburger toggle button for <1024px */}
+          <button
+            onClick={toggleSidebar}
+            className="p-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 lg:hidden border border-slate-200 dark:border-slate-700"
+            aria-label="Toggle navigation sidebar"
+          >
+            <Menu className="w-5 h-5" />
+          </button>
+
+          <div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <h1 className="text-xl md:text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
+                Welcome to DevPulse 👋
+              </h1>
+              {isSimulating && (
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-500 border border-amber-500/20 animate-pulse">
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                  Simulating Live ({simPercent}%)
+                </span>
+              )}
+            </div>
+            <p className="text-xs md:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+              Real-time CI/CD pipeline monitoring across your projects
+            </p>
           </div>
-          <p className="text-xs md:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
-            Real-time CI/CD pipeline monitoring across your projects
-          </p>
         </div>
 
         {/* Right: Controls & Switchers */}
@@ -123,7 +135,9 @@ export default function Header() {
               <span className="max-w-[140px] truncate font-mono font-medium">
                 {activeProject?.displayName || 'Project'}
               </span>
-              <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform ${projectDropdownOpen ? 'rotate-180' : ''}`} />
+              <ChevronDown
+                className={`w-3.5 h-3.5 text-slate-400 transition-transform ${projectDropdownOpen ? 'rotate-180' : ''}`}
+              />
             </button>
 
             {projectDropdownOpen && (
@@ -183,10 +197,7 @@ export default function Header() {
                     Role Handoff Alerts
                   </span>
                   {unreadCount > 0 && (
-                    <button
-                      onClick={markAllRead}
-                      className="text-[11px] text-sky-500 hover:underline"
-                    >
+                    <button onClick={markAllRead} className="text-[11px] text-sky-500 hover:underline">
                       Mark all read
                     </button>
                   )}

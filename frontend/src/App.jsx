@@ -20,48 +20,50 @@ export default function App() {
 
   return (
     <div className="flex min-h-screen bg-slate-50 dark:bg-[#0B1120] text-slate-800 dark:text-slate-100 transition-colors duration-200">
-      {/* 1. Left Sidebar Navigation (Navy Blue #0F172A) */}
+      {/* 1. Left Sidebar Navigation (Navy Blue #0F172A) - Collapsible on <1024px */}
       <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
 
-      {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">
+      {/* Main Content Area: min-w-0 flex-1 overflow-x-hidden to eliminate layout squish */}
+      <div className="flex-1 flex flex-col min-w-0 overflow-x-hidden overflow-y-auto">
         {/* 2. Top Header & Project Switcher */}
         <Header />
 
         {/* Dynamic View by activeTab */}
-        <main className="flex-1 p-6 space-y-6 max-w-7xl mx-auto w-full">
+        <main className="flex-1 p-4 sm:p-6 space-y-6 max-w-7xl mx-auto w-full min-w-0">
           {activeTab === 'dashboard' && (
             <>
               {/* Row 1: 4 KPI Statistics Cards (#1) */}
-              <KpiStatsGrid />
+              <div className="min-w-0">
+                <KpiStatsGrid />
+              </div>
 
               {/* Row 2: Visual Stage Flow + 80% Role Handoff Bar (Left 2/3) & Analytics Charts (Right 1/3) */}
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
-                <div className="lg:col-span-2">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch min-w-0">
+                <div className="lg:col-span-2 min-w-0">
                   <PipelineStageVisualizer />
                 </div>
-                <div className="lg:col-span-1">
+                <div className="lg:col-span-1 min-w-0">
                   <BuildAnalyticsCharts />
                 </div>
               </div>
 
               {/* Row 3: Pipeline History Table (Left 2/3) & Diagnostic Stack (Right 1/3) */}
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-                <div className="lg:col-span-2">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start min-w-0">
+                <div className="lg:col-span-2 min-w-0">
                   <RunsHistoryTable />
                 </div>
-                <div className="lg:col-span-1 space-y-6">
+                <div className="lg:col-span-1 space-y-6 min-w-0">
                   <TestSummaryCard />
                   <FailureExplanationPanel />
                 </div>
               </div>
 
               {/* Row 4: Waterfall Execution Timeline (Left 2/3) & Deployment History (Right 1/3) */}
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-                <div className="lg:col-span-2">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start min-w-0">
+                <div className="lg:col-span-2 min-w-0">
                   <WaterfallTimeline />
                 </div>
-                <div className="lg:col-span-1">
+                <div className="lg:col-span-1 min-w-0">
                   <DeploymentHistoryView compact={true} />
                 </div>
               </div>
@@ -69,39 +71,47 @@ export default function App() {
           )}
 
           {activeTab === 'pipelines' && (
-            <div className="space-y-6">
+            <div className="space-y-6 min-w-0">
               <PipelineStageVisualizer />
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <WaterfallTimeline />
-                <BuildAnalyticsCharts />
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 min-w-0">
+                <div className="min-w-0">
+                  <WaterfallTimeline />
+                </div>
+                <div className="min-w-0">
+                  <BuildAnalyticsCharts />
+                </div>
               </div>
             </div>
           )}
 
           {activeTab === 'history' && (
-            <div className="space-y-6">
+            <div className="space-y-6 min-w-0">
               <RunsHistoryTable />
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <TestSummaryCard />
-                <FailureExplanationPanel />
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 min-w-0">
+                <div className="min-w-0">
+                  <TestSummaryCard />
+                </div>
+                <div className="min-w-0">
+                  <FailureExplanationPanel />
+                </div>
               </div>
             </div>
           )}
 
           {activeTab === 'deployments' && (
-            <div className="space-y-6">
+            <div className="space-y-6 min-w-0">
               <DeploymentHistoryView compact={false} />
               <DockerContainersWidget compact={false} />
             </div>
           )}
 
           {activeTab === 'tests' && (
-            <div className="space-y-6">
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div className="lg:col-span-1">
+            <div className="space-y-6 min-w-0">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 min-w-0">
+                <div className="lg:col-span-1 min-w-0">
                   <TestSummaryCard />
                 </div>
-                <div className="lg:col-span-2">
+                <div className="lg:col-span-2 min-w-0">
                   <FailureExplanationPanel />
                 </div>
               </div>
@@ -110,14 +120,14 @@ export default function App() {
           )}
 
           {activeTab === 'errors' && (
-            <div className="space-y-6">
+            <div className="space-y-6 min-w-0">
               <FailureExplanationPanel />
               <RunsHistoryTable />
             </div>
           )}
 
           {activeTab === 'projects' && (
-            <div className="space-y-6">
+            <div className="space-y-6 min-w-0">
               <div>
                 <h2 className="text-lg font-bold text-slate-900 dark:text-white">Active Projects & Repositories</h2>
                 <p className="text-xs text-slate-500 dark:text-slate-400">
@@ -125,7 +135,7 @@ export default function App() {
                 </p>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 min-w-0">
                 {projects.map((proj) => {
                   const isCurrent = proj.id === activeProject.id;
                   return (
@@ -140,7 +150,7 @@ export default function App() {
                     >
                       <div className="flex items-center justify-between mb-3">
                         <span className="w-8 h-8 rounded-lg bg-sky-500/10 text-sky-500 flex items-center justify-center font-bold font-mono text-xs">
-                          {proj.displayName.slice(0, 2).toUpperCase()}
+                          {proj.displayName ? proj.displayName.slice(0, 2).toUpperCase() : 'PR'}
                         </span>
                         <span
                           className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
@@ -155,10 +165,10 @@ export default function App() {
                         </span>
                       </div>
                       <h3 className="font-mono font-bold text-sm text-slate-900 dark:text-white truncate">
-                        {proj.displayName}
+                        {proj.displayName || proj.name}
                       </h3>
                       <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                        {proj.passRate}% builds passing • last by {proj.lastAuthor}
+                        {proj.passRate}% builds passing • {proj.lastAuthor}
                       </p>
                     </div>
                   );

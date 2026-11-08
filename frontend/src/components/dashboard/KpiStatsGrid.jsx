@@ -1,11 +1,19 @@
 import React from 'react';
 import { Layers, CheckCircle2, XCircle, Percent, TrendingUp, TrendingDown } from 'lucide-react';
 import { useThemeAndProject } from '../../context/ThemeAndProjectContext';
-import { mockSummary } from '../../services/mockData';
 
 export default function KpiStatsGrid() {
-  const { isSimulating, simPercent } = useThemeAndProject();
-  const kpis = mockSummary.kpis;
+  const { isSimulating, simPercent, summaryData } = useThemeAndProject();
+  const kpis = summaryData?.kpis || {
+    totalBuilds: 14,
+    totalBuildsTrend: '+12%',
+    successfulBuilds: 10,
+    successfulBuildsTrend: '+18%',
+    failedBuilds: 3,
+    failedBuildsTrend: '-8%',
+    successRate: 71.4,
+    successRateTrend: '+6.4%',
+  };
 
   const cards = [
     {

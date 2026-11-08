@@ -1,11 +1,11 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import api from '../services/api';
-import { mockProjects, mockPipelineRuns } from '../services/mockData';
+import { mockProjects, mockPipelineRuns, mockSummary } from '../services/mockData';
 
 const ThemeAndProjectContext = createContext(null);
 
 export function ThemeAndProjectProvider({ children }) {
-  // 1. Theme State (Default to Dark Mode as per enterprise CI/CD dashboard)
+  // 1. Theme State (Default to Dark Mode for enterprise CI/CD monitoring)
   const [theme, setTheme] = useState(() => {
     try {
       const saved = localStorage.getItem('devpulse-theme');
@@ -35,10 +35,20 @@ export function ThemeAndProjectProvider({ children }) {
     setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
   }, []);
 
-  // 2. Project State
+  // 2. Responsive Mobile / Narrow Sidebar State (Requirement #3)
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const toggleSidebar = useCallback(() => {
+    setIsSidebarOpen((prev) => !prev);
+  }, []);
+  const closeSidebar = useCallback(() => {
+    setIsSidebarOpen(false);
+  }, []);
+
+  // 3. Project Selection State
   const [projects, setProjects] = useState(mockProjects);
   const [activeProject, setActiveProject] = useState(mockProjects[0]);
 
+  // Load live projects from FastAPI
   useEffect(() => {
     api.getProjects().then((data) => {
       if (Array.isArray(data) && data.length > 0) {
@@ -49,17 +59,82 @@ export function ThemeAndProjectProvider({ children }) {
     });
   }, []);
 
-  // 3. Selected Run State (for dynamic row clicking)
+  // 4. Live Pipeline Summary & KPI Statistics State
+  const [summaryData, setSummaryData] = useState(mockSummary);
+
+  const fetchSummary = useCallback(async (projectId) => {
+    try {
+      const data = await api.getPipelineSummary(projectId);
+      if (data) setSummaryData(data);
+    } catch {
+      // keep previous
+    }
+  }, []);
+
+  useEffect(() => {
+    if (activeProject?.id) {
+      fetchSummary(activeProject.id);
+    }
+  }, [activeProject, fetchSummary]);
+
+  // 5. Live Pipeline Runs State
   const [runs, setRuns] = useState(mockPipelineRuns);
   const [selectedRun, setSelectedRun] = useState(mockPipelineRuns[0]);
+  const [runsLoading, setRunsLoading] = useState(false);
 
-  // 4. Source Control / Git Drawer state
+  const fetchRuns = useCallback(async (projectId, status = 'All', search = '') => {
+    setRunsLoading(true);
+    try {
+      const data = await api.getPipelineRuns({ project: projectId, status, search });
+      if (Array.isArray(data) && data.length > 0) {
+        setRuns(data);
+        // Default selectedRun to the first run if none selected or if project switched
+        setSelectedRun((prev) => {
+          const match = data.find((r) => r.id === prev?.id || r.rawId === prev?.rawId);
+          return match || data[0];
+        });
+      }
+    } catch {
+      // keep previous
+    } finally {
+      setRunsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (activeProject?.id) {
+      fetchRuns(activeProject.id);
+    }
+  }, [activeProject, fetchRuns]);
+
+  // Enrich selectedRun with live error-summary from backend when failure occurs
+  const selectRunAndFetchError = useCallback(
+    async (run) => {
+      setSelectedRun(run);
+      if (run.status.includes('Failed')) {
+        try {
+          const errorDetails = await api.getErrorSummary(run.rawId || run.id, activeProject?.id);
+          if (errorDetails && errorDetails.failedStage !== 'None') {
+            setSelectedRun((prev) => ({
+              ...prev,
+              errorSummary: errorDetails,
+            }));
+          }
+        } catch {
+          // keep local fallback error summary
+        }
+      }
+    },
+    [activeProject]
+  );
+
+  // 6. Source Control / Git Drawer state
   const [isGitDrawerOpen, setIsGitDrawerOpen] = useState(false);
   const toggleGitDrawer = useCallback(() => {
     setIsGitDrawerOpen((prev) => !prev);
   }, []);
 
-  // 5. Raw Logs Modal State
+  // 7. Raw Logs Modal State
   const [logsModal, setLogsModal] = useState({
     isOpen: false,
     title: '',
@@ -74,16 +149,16 @@ export function ThemeAndProjectProvider({ children }) {
     setLogsModal((prev) => ({ ...prev, isOpen: false }));
   }, []);
 
-  // 6. Live Simulation State (0% -> 100% with Role Handoff Pre-Notifications)
+  // 8. Live Simulation State connected to POST /api/pipeline/simulate & GET /api/pipeline/live
   const [isSimulating, setIsSimulating] = useState(false);
-  const [simPercent, setSimPercent] = useState(100); // 100% completed by default
-  const [simStage, setSimStage] = useState('deploy'); // 'build', 'test', 'docker', 'deploy'
+  const [simPercent, setSimPercent] = useState(100);
+  const [simStage, setSimStage] = useState('deploy');
   const [simAlert, setSimAlert] = useState(null);
   const [notifications, setNotifications] = useState([
     {
       id: 'n-1',
       title: 'QA Testing Handover Ready',
-      message: 'Run #1287 completed Build stage cleanly. QA test suites triggered.',
+      message: 'Run completed Build stage cleanly. QA Pytest / Vitest suites triggered.',
       time: '2m ago',
       read: false,
       team: 'QA Testing Team',
@@ -98,9 +173,8 @@ export function ThemeAndProjectProvider({ children }) {
     },
   ]);
 
-  const simulationIntervalRef = useRef(null);
+  const simulationPollRef = useRef(null);
 
-  // Helper to determine active team by percentage
   const getRoleTeamForPercent = useCallback((p) => {
     if (p < 25) return { role: 'Dev Team', task: 'Source Push & Validation', range: '0–25%' };
     if (p < 50) return { role: 'CI Team', task: 'Build & Compilation', range: '25–50%' };
@@ -108,85 +182,82 @@ export function ThemeAndProjectProvider({ children }) {
     return { role: 'CD Release Team', task: 'Docker & Production Rollout', range: '80–100%' };
   }, []);
 
-  const startSimulation = useCallback(() => {
-    if (simulationIntervalRef.current) clearInterval(simulationIntervalRef.current);
+  // Trigger live simulation on backend and poll /api/pipeline/live
+  const startSimulation = useCallback(async () => {
+    if (simulationPollRef.current) clearInterval(simulationPollRef.current);
 
     setIsSimulating(true);
     setSimPercent(0);
     setSimStage('build');
     setSimAlert({
       level: 'info',
-      message: 'Dev Team pushed commit 121fac2 to origin/main. Initiating CI pipeline.',
+      message: `Triggering live pipeline simulation on ${activeProject?.displayName || 'project'}.`,
       team: 'Dev Team',
       nextTeam: 'CI Team',
     });
 
-    let currentP = 0;
-    simulationIntervalRef.current = setInterval(() => {
-      currentP += 2;
+    try {
+      await api.triggerSimulation(activeProject?.id, 1.0);
+    } catch {
+      // continue with client progression if offline
+    }
 
-      if (currentP <= 100) {
-        setSimPercent(currentP);
+    let pollCount = 0;
+    simulationPollRef.current = setInterval(async () => {
+      pollCount++;
+      try {
+        const liveStatus = await api.getLivePipelineStatus(activeProject?.id);
 
-        // Update active stage
-        if (currentP < 25) {
-          setSimStage('build');
-        } else if (currentP < 50) {
-          setSimStage('test');
-        } else if (currentP < 80) {
-          setSimStage('docker');
-        } else {
-          setSimStage('deploy');
-        }
+        if (liveStatus) {
+          const currentP = Math.min(100, liveStatus.percent);
+          setSimPercent(currentP);
 
-        // Pre-notification alerts at >= 75-80% thresholds
-        if (currentP >= 42 && currentP <= 48) {
-          setSimAlert({
-            level: 'warning',
-            message: 'Heads-Up Role Handoff: CI Team build is at 45% (wrapping up). QA Testing Team, prepare Pytest/Vitest suites!',
-            team: 'CI Team',
-            nextTeam: 'QA Testing Team',
-            isPreHandoff: true,
-          });
-        } else if (currentP >= 74 && currentP <= 80) {
-          setSimAlert({
-            level: 'warning',
-            message: 'Heads-Up Role Handoff: QA Testing is at 78% passing. CD Release Team standby for Docker container packaging and k8s canary rollout!',
-            team: 'QA Testing Team',
-            nextTeam: 'CD Release Team',
-            isPreHandoff: true,
-          });
-        } else if (currentP === 100) {
-          setSimAlert({
-            level: 'success',
-            message: 'Pipeline Execution Completed! All stages passed. Version v1.4.1 deployed to Production.',
-            team: 'CD Release Team',
-            nextTeam: 'All Systems Operational',
-            isPreHandoff: false,
-          });
+          if (currentP < 25) setSimStage('build');
+          else if (currentP < 50) setSimStage('test');
+          else if (currentP < 80) setSimStage('docker');
+          else setSimStage('deploy');
 
-          // Add a fresh notification
-          setNotifications((prev) => [
-            {
-              id: `sim-${Date.now()}`,
-              title: 'Live Pipeline Simulation Completed',
-              message: 'Live run reached 100% with all automated checks passing.',
-              time: 'Just now',
-              read: false,
+          if (liveStatus.handoffAlert) {
+            setSimAlert(liveStatus.handoffAlert);
+          } else if (currentP >= 75 && currentP < 85) {
+            setSimAlert({
+              level: 'warning',
+              message: 'Heads-Up Role Handoff: QA Testing is at 78% passing. CD Release Team standby for Docker container packaging and rollout!',
+              team: 'QA Testing Team',
+              nextTeam: 'CD Release Team',
+              isPreHandoff: true,
+            });
+          }
+
+          if (liveStatus.isFinished || currentP >= 100 || pollCount > 30) {
+            clearInterval(simulationPollRef.current);
+            setIsSimulating(false);
+            setSimPercent(100);
+            setSimStage('deploy');
+            setSimAlert({
+              level: 'success',
+              message: 'Pipeline Execution Completed! All stages passed. Version deployed to Production.',
               team: 'CD Release Team',
-            },
-            ...prev,
-          ]);
+              nextTeam: 'All Systems Operational',
+              isPreHandoff: false,
+            });
 
-          setIsSimulating(false);
-          clearInterval(simulationIntervalRef.current);
+            // Refetch summary & runs so new run appears immediately
+            fetchSummary(activeProject?.id);
+            fetchRuns(activeProject?.id);
+          }
         }
+      } catch {
+        // Stop on error
+        clearInterval(simulationPollRef.current);
+        setIsSimulating(false);
+        setSimPercent(100);
       }
-    }, 180); // ~9 seconds for smooth full simulation
-  }, []);
+    }, 1000);
+  }, [activeProject, fetchSummary, fetchRuns]);
 
   const resetSimulation = useCallback(() => {
-    if (simulationIntervalRef.current) clearInterval(simulationIntervalRef.current);
+    if (simulationPollRef.current) clearInterval(simulationPollRef.current);
     setIsSimulating(false);
     setSimPercent(100);
     setSimStage('deploy');
@@ -200,13 +271,21 @@ export function ThemeAndProjectProvider({ children }) {
         isDark: theme === 'dark',
         toggleTheme,
         setTheme,
+        isSidebarOpen,
+        setIsSidebarOpen,
+        toggleSidebar,
+        closeSidebar,
         projects,
         activeProject,
         setActiveProject,
+        summaryData,
+        fetchSummary,
         runs,
         setRuns,
+        runsLoading,
+        fetchRuns,
         selectedRun,
-        setSelectedRun,
+        setSelectedRun: selectRunAndFetchError,
         isGitDrawerOpen,
         setIsGitDrawerOpen,
         toggleGitDrawer,

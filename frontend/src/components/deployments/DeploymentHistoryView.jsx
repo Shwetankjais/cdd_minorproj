@@ -1,13 +1,31 @@
-import React, { useState } from 'react';
-import { Rocket, CheckCircle2, XCircle, RotateCcw, Clock, GitCommit, ArrowRight, ShieldCheck, Filter } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Rocket, CheckCircle2, XCircle, RotateCcw, Clock, ShieldCheck, Filter, Loader2 } from 'lucide-react';
+import api from '../../services/api';
 import { mockDeployments } from '../../services/mockData';
-import { useThemeAndProject } from '../../context/ThemeAndProjectContext';
 
 export default function DeploymentHistoryView({ compact = false }) {
   const [deployments, setDeployments] = useState(mockDeployments);
-  const [filterHours, setFilterHours] = useState('All'); // '2', '24', 'All'
+  const [filterHours, setFilterHours] = useState('all'); // '1', '2', '24', 'all'
+  const [loading, setLoading] = useState(false);
   const [actionFeedback, setActionFeedback] = useState(null);
-  const { openLogsModal } = useThemeAndProject();
+
+  const fetchDeployments = useCallback(async (hours) => {
+    setLoading(true);
+    try {
+      const data = await api.getDeployments(hours);
+      if (Array.isArray(data) && data.length > 0) {
+        setDeployments(data);
+      }
+    } catch {
+      // keep fallback
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchDeployments(filterHours);
+  }, [filterHours, fetchDeployments]);
 
   const handleRollback = (version) => {
     setActionFeedback(`Initiating rollback to ${version}... Verification canary deployed.`);
@@ -25,12 +43,6 @@ export default function DeploymentHistoryView({ compact = false }) {
     }, 1200);
   };
 
-  const filteredDeployments = deployments.filter((d) => {
-    if (filterHours === '2') return d.hoursAgo <= 2;
-    if (filterHours === '24') return d.hoursAgo <= 24;
-    return true;
-  });
-
   if (compact) {
     return (
       <div className="p-5 rounded-2xl bg-white dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700/80 shadow-sm transition-all duration-200 flex flex-col justify-between">
@@ -42,17 +54,21 @@ export default function DeploymentHistoryView({ compact = false }) {
               </div>
               <h3 className="text-sm font-bold text-slate-900 dark:text-white">Deployment History</h3>
             </div>
-            <span className="text-xs text-sky-600 dark:text-sky-400 font-semibold cursor-pointer hover:underline">
-              View All →
-            </span>
+            {loading ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin text-sky-500" />
+            ) : (
+              <span className="text-xs text-sky-600 dark:text-sky-400 font-semibold cursor-pointer hover:underline">
+                View All →
+              </span>
+            )}
           </div>
 
           <div className="space-y-2.5">
             {deployments.slice(0, 4).map((d) => {
-              const isDeployed = d.status === 'Deployed';
+              const isDeployed = d.status === 'Deployed' || d.status === 'success';
               return (
                 <div
-                  key={d.version}
+                  key={d.id || d.version}
                   className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/40 border border-slate-200/60 dark:border-slate-800 flex items-center justify-between text-xs"
                 >
                   <div className="flex items-center gap-2.5">
@@ -90,7 +106,9 @@ export default function DeploymentHistoryView({ compact = false }) {
         </div>
 
         <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 text-[11px] text-slate-400 flex items-center justify-between">
-          <span>Active Target: <strong>Kubernetes US-East</strong></span>
+          <span>
+            Active Target: <strong>Kubernetes US-East</strong>
+          </span>
           <span className="text-emerald-500 font-semibold flex items-center gap-1">
             <ShieldCheck className="w-3.5 h-3.5" /> 100% Healthy
           </span>
@@ -112,7 +130,7 @@ export default function DeploymentHistoryView({ compact = false }) {
               Production Deployment Audit & Rollback Control
             </h2>
             <p className="text-xs text-slate-500 dark:text-slate-400">
-              Live releases filtered by recent hours with instant 1-click rollback capability
+              Live releases fetched from /api/deployments with instant 1-click rollback capability
             </p>
           </div>
         </div>
@@ -123,6 +141,16 @@ export default function DeploymentHistoryView({ compact = false }) {
             <Filter className="w-3 h-3" /> Time Range:
           </span>
           <button
+            onClick={() => setFilterHours('1')}
+            className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
+              filterHours === '1'
+                ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm'
+                : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+            }`}
+          >
+            Last 1h
+          </button>
+          <button
             onClick={() => setFilterHours('2')}
             className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
               filterHours === '2'
@@ -130,7 +158,7 @@ export default function DeploymentHistoryView({ compact = false }) {
                 : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
             }`}
           >
-            Last 1–2 Hours
+            Last 2 Hours
           </button>
           <button
             onClick={() => setFilterHours('24')}
@@ -143,9 +171,9 @@ export default function DeploymentHistoryView({ compact = false }) {
             Last 24h
           </button>
           <button
-            onClick={() => setFilterHours('All')}
+            onClick={() => setFilterHours('all')}
             className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
-              filterHours === 'All'
+              filterHours === 'all'
                 ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm'
                 : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
             }`}
@@ -177,27 +205,27 @@ export default function DeploymentHistoryView({ compact = false }) {
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-            {filteredDeployments.length === 0 ? (
+            {loading ? (
+              <tr>
+                <td colSpan={6} className="py-8 text-center text-slate-400">
+                  <Loader2 className="w-5 h-5 animate-spin mx-auto mb-1 text-sky-500" />
+                  <span>Loading live deployments from /api/deployments...</span>
+                </td>
+              </tr>
+            ) : deployments.length === 0 ? (
               <tr>
                 <td colSpan={6} className="py-8 text-center text-slate-400">
                   No deployments found for the selected time window.
                 </td>
               </tr>
             ) : (
-              filteredDeployments.map((d) => {
-                const isDeployed = d.status === 'Deployed';
+              deployments.map((d) => {
+                const isDeployed = d.status === 'Deployed' || d.status === 'success';
 
                 return (
-                  <tr
-                    key={d.version}
-                    className="hover:bg-slate-50/80 dark:hover:bg-slate-800/60 transition-colors"
-                  >
+                  <tr key={d.id || d.version} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/60 transition-colors">
                     <td className="py-3.5 px-3.5 font-bold font-mono text-slate-900 dark:text-white flex items-center gap-2">
-                      <span
-                        className={`w-2 h-2 rounded-full ${
-                          isDeployed ? 'bg-emerald-500' : 'bg-rose-500'
-                        }`}
-                      ></span>
+                      <span className={`w-2 h-2 rounded-full ${isDeployed ? 'bg-emerald-500' : 'bg-rose-500'}`}></span>
                       {d.version}
                     </td>
 
@@ -205,9 +233,7 @@ export default function DeploymentHistoryView({ compact = false }) {
                       <span className="text-sky-600 dark:text-sky-400">{d.runId}</span> • {d.commitHash}
                     </td>
 
-                    <td className="py-3 px-3 text-slate-500 dark:text-slate-400">
-                      {d.environment}
-                    </td>
+                    <td className="py-3 px-3 text-slate-500 dark:text-slate-400">{d.environment}</td>
 
                     <td className="py-3 px-3">
                       <span

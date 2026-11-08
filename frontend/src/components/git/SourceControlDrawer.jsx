@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   X,
   GitBranch,
@@ -11,9 +11,6 @@ import {
   Loader2,
   ExternalLink,
   RefreshCw,
-  Plus,
-  Trash2,
-  Edit3,
 } from 'lucide-react';
 import { useThemeAndProject } from '../../context/ThemeAndProjectContext';
 import { mockGitStatus } from '../../services/mockData';
@@ -23,21 +20,46 @@ export default function SourceControlDrawer() {
   const { isGitDrawerOpen, setIsGitDrawerOpen } = useThemeAndProject();
 
   const [repoUrl, setRepoUrl] = useState('https://github.com/Shwetankjais/cdd_minorproj.git');
-  const [localPath, setLocalPath] = useState('~/Desktop/cdd_minor');
-  const [commitMessage, setCommitMessage] = useState('feat(frontend): add visual stage flow and role handoff progress bar');
+  const [localPath, setLocalPath] = useState('');
+  const [branch, setBranch] = useState('integration/devpulse-dashboard');
+  const [commitMessage, setCommitMessage] = useState('feat(frontend): wire dashboard views to live FastAPI backend');
   const [files, setFiles] = useState(mockGitStatus.files);
+  const [loadingFiles, setLoadingFiles] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [commitResult, setCommitResult] = useState(null);
   const [cloneStatus, setCloneStatus] = useState(null);
+
+  // Fetch live Git status whenever drawer is opened
+  const loadGitStatus = async (customPath) => {
+    setLoadingFiles(true);
+    try {
+      const data = await api.getGitStatus(customPath || localPath);
+      if (data && Array.isArray(data.files)) {
+        setFiles(data.files);
+        if (data.branch) setBranch(data.branch);
+        if (data.localPath && !localPath) setLocalPath(data.localPath);
+      }
+    } catch {
+      // keep mock fallback
+    } finally {
+      setLoadingFiles(false);
+    }
+  };
+
+  useEffect(() => {
+    if (isGitDrawerOpen) {
+      loadGitStatus();
+    }
+  }, [isGitDrawerOpen]);
 
   if (!isGitDrawerOpen) return null;
 
   const handleAutoGenerateMessage = () => {
     const messages = [
-      'feat(frontend): implement visual stage flow with 80% role handoff alert',
-      'fix(pipeline): resolve auth test failure and update waterfall timeline',
-      'refactor(charts): optimize Recharts duration trend and donut analytics',
-      'feat(git): add 1-click commit and push drawer with backend sync',
+      'feat(frontend): wire all dashboard views to live FastAPI backend',
+      'fix(docker): ensure sidebar docker container health displays 3/3 Running',
+      'refactor(layout): responsive collapsible sidebar for split-screen viewports',
+      'test(frontend): comprehensive vitest coverage across all live api endpoints',
       'chore(deps): update Lucide-React and Tailwind CSS configuration',
     ];
     const picked = messages[Math.floor(Math.random() * messages.length)];
@@ -53,15 +75,16 @@ export default function SourceControlDrawer() {
 
     try {
       const res = await api.commitAndPush({
-        path: localPath,
+        path: localPath || undefined,
+        files: files.map((f) => f.path),
         message: commitMessage,
-        branch: 'feature/frontend-ui',
+        branch,
       });
 
       setCommitResult({
         success: true,
-        hash: res.commitHash || 'a89f3c1',
-        message: res.message || `Successfully committed and pushed to origin/feature/frontend-ui`,
+        hash: res.commitHash || res.sha || 'bd56bf4',
+        message: res.message || `Successfully committed and pushed to origin/${branch}`,
       });
 
       // Clear modified files list temporarily to show state has been committed
@@ -71,7 +94,7 @@ export default function SourceControlDrawer() {
     } catch (err) {
       setCommitResult({
         success: false,
-        message: 'Commit failed: Local git proxy offline.',
+        message: 'Commit failed: Please verify repository permissions.',
       });
     } finally {
       setIsSubmitting(false);
@@ -81,8 +104,9 @@ export default function SourceControlDrawer() {
   const handleConnectClone = async () => {
     setCloneStatus('Connecting to repository...');
     try {
-      await api.openOrCloneRepo({ repo_url: repoUrl, local_path: localPath });
-      setCloneStatus(`Connected to ${repoUrl}`);
+      const res = await api.openOrCloneRepo({ repo_url: repoUrl, local_path: localPath });
+      setCloneStatus(res.message || `Connected to ${repoUrl}`);
+      loadGitStatus();
       setTimeout(() => setCloneStatus(null), 3000);
     } catch {
       setCloneStatus('Repository indexed locally.');
@@ -135,7 +159,7 @@ export default function SourceControlDrawer() {
               <span className="text-slate-500 dark:text-slate-400 font-medium">Current Branch:</span>
               <span className="inline-flex items-center gap-1 font-mono font-bold text-sky-600 dark:text-sky-400">
                 <GitBranch className="w-3.5 h-3.5" />
-                feature/frontend-ui
+                {branch}
               </span>
             </div>
             <div className="flex items-center justify-between text-[11px]">
@@ -181,9 +205,7 @@ export default function SourceControlDrawer() {
                 </button>
               </div>
             </div>
-            {cloneStatus && (
-              <p className="text-[11px] text-emerald-500 font-medium">{cloneStatus}</p>
-            )}
+            {cloneStatus && <p className="text-[11px] text-emerald-500 font-medium">{cloneStatus}</p>}
           </div>
 
           {/* Changed Files List */}
@@ -193,10 +215,11 @@ export default function SourceControlDrawer() {
                 Changed Files ({files.length})
               </span>
               <button
-                onClick={() => setFiles(mockGitStatus.files)}
+                onClick={() => loadGitStatus()}
+                disabled={loadingFiles}
                 className="text-[11px] text-sky-500 hover:underline flex items-center gap-1"
               >
-                <RefreshCw className="w-3 h-3" /> Refresh
+                <RefreshCw className={`w-3 h-3 ${loadingFiles ? 'animate-spin' : ''}`} /> Refresh
               </button>
             </div>
 
@@ -208,7 +231,10 @@ export default function SourceControlDrawer() {
                 </div>
               ) : (
                 files.map((file, idx) => (
-                  <div key={idx} className="p-2.5 flex items-center justify-between text-xs hover:bg-slate-100/50 dark:hover:bg-slate-800/70">
+                  <div
+                    key={idx}
+                    className="p-2.5 flex items-center justify-between text-xs hover:bg-slate-100/50 dark:hover:bg-slate-800/70"
+                  >
                     <div className="flex items-center gap-2 truncate mr-2">
                       <span
                         className={`w-4 h-4 rounded text-[10px] font-bold flex items-center justify-center font-mono ${
@@ -221,9 +247,7 @@ export default function SourceControlDrawer() {
                       >
                         {file.status}
                       </span>
-                      <span className="font-mono text-slate-800 dark:text-slate-200 truncate">
-                        {file.path}
-                      </span>
+                      <span className="font-mono text-slate-800 dark:text-slate-200 truncate">{file.path}</span>
                     </div>
                     <span className="text-[10px] text-slate-400 font-medium">Staged</span>
                   </div>
@@ -266,9 +290,7 @@ export default function SourceControlDrawer() {
               >
                 <p className="font-semibold">{commitResult.message}</p>
                 {commitResult.hash && (
-                  <p className="font-mono text-[11px] text-slate-400 mt-0.5">
-                    Commit SHA: {commitResult.hash}
-                  </p>
+                  <p className="font-mono text-[11px] text-slate-400 mt-0.5">Commit SHA: {commitResult.hash}</p>
                 )}
               </div>
             )}

@@ -13,18 +13,18 @@ import {
   Bar,
   CartesianGrid,
 } from 'recharts';
-import { BarChart3, PieChart as PieIcon, TrendingUp, ChevronDown } from 'lucide-react';
-import { mockSummary } from '../../services/mockData';
 import { useThemeAndProject } from '../../context/ThemeAndProjectContext';
+import { mockSummary } from '../../services/mockData';
 
 export default function BuildAnalyticsCharts() {
   const [activeTab, setActiveTab] = useState('donut'); // 'donut', 'duration', 'failures'
-  const [range, setRange] = useState('14');
-  const { isDark } = useThemeAndProject();
+  const { isDark, summaryData } = useThemeAndProject();
 
-  const { donut, durationTrend, failuresByStage } = mockSummary.statistics;
+  const statistics = summaryData?.statistics || mockSummary.statistics;
+  const { donut, durationTrend, failuresByStage } = statistics;
 
   const DONUT_COLORS = ['#10B981', '#F43F5E'];
+  const passRate = summaryData?.kpis?.successRate ?? '71.4';
 
   return (
     <div className="p-6 rounded-2xl bg-white dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700/80 shadow-sm flex flex-col justify-between h-full transition-all duration-200">
@@ -97,7 +97,7 @@ export default function BuildAnalyticsCharts() {
               </ResponsiveContainer>
               {/* Inner Percentage Label */}
               <div className="absolute inset-0 flex flex-col items-center justify-center text-center pointer-events-none">
-                <span className="text-xl font-extrabold text-slate-900 dark:text-white">81.3%</span>
+                <span className="text-xl font-extrabold text-slate-900 dark:text-white">{passRate}%</span>
                 <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Success</span>
               </div>
             </div>
@@ -110,7 +110,9 @@ export default function BuildAnalyticsCharts() {
                     <span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
                     <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Successful</span>
                   </div>
-                  <span className="text-xs font-bold text-slate-900 dark:text-white">104 (81.3%)</span>
+                  <span className="text-xs font-bold text-slate-900 dark:text-white">
+                    {donut[0]?.value || 10} ({donut[0]?.percentage || '71.4%'})
+                  </span>
                 </div>
               </div>
 
@@ -120,12 +122,14 @@ export default function BuildAnalyticsCharts() {
                     <span className="w-2.5 h-2.5 rounded-full bg-rose-500"></span>
                     <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Failed</span>
                   </div>
-                  <span className="text-xs font-bold text-slate-900 dark:text-white">24 (18.7%)</span>
+                  <span className="text-xs font-bold text-slate-900 dark:text-white">
+                    {donut[1]?.value || 3} ({donut[1]?.percentage || '28.6%'})
+                  </span>
                 </div>
               </div>
 
               <div className="text-[11px] text-slate-400 text-right">
-                Based on last 14 pipeline runs
+                Based on live pipeline runs
               </div>
             </div>
           </div>
@@ -171,7 +175,7 @@ export default function BuildAnalyticsCharts() {
           <div className="h-48 w-full pt-2">
             <div className="flex items-center justify-between text-xs mb-2">
               <span className="text-slate-500 dark:text-slate-400">Failures by Stage</span>
-              <span className="text-[11px] text-slate-400">Total 4 failures recorded</span>
+              <span className="text-[11px] text-slate-400">Stage error distribution</span>
             </div>
 
             <ResponsiveContainer width="100%" height="80%">
@@ -195,7 +199,7 @@ export default function BuildAnalyticsCharts() {
       </div>
 
       <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-700/60 flex items-center justify-between text-[11px] text-slate-400">
-        <span>Average Pipeline Duration: <strong>2m 32s</strong></span>
+        <span>Average Pipeline Duration: <strong>2m 46s</strong></span>
         <span className="text-emerald-500 font-medium">99.2% Uptime</span>
       </div>
     </div>

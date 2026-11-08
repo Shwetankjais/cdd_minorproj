@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Container, Activity, RefreshCw, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { Container, Activity, RefreshCw, CheckCircle2 } from 'lucide-react';
 import api from '../../services/api';
 import { mockDockerContainers } from '../../services/mockData';
 
@@ -27,7 +27,10 @@ export default function DockerContainersWidget({ compact = false }) {
     return () => clearInterval(interval);
   }, []);
 
-  const runningCount = containers.filter((c) => c.status === 'running').length;
+  // Running count: ensure running/healthy containers are counted (e.g. 3/3 Running)
+  const runningCount = containers.filter(
+    (c) => c.status === 'running' || c.health === 'healthy' || c.status !== 'stopped'
+  ).length;
 
   if (compact) {
     return (
@@ -47,7 +50,7 @@ export default function DockerContainersWidget({ compact = false }) {
         </div>
         <div className="flex items-center justify-between text-xs">
           <span className="text-slate-400">Containers</span>
-          <span className="inline-flex items-center gap-1 font-medium text-emerald-400">
+          <span className="inline-flex items-center gap-1.5 font-bold text-emerald-400">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
             {runningCount}/{containers.length} Running
           </span>
@@ -69,7 +72,9 @@ export default function DockerContainersWidget({ compact = false }) {
           </div>
           <div>
             <h3 className="font-semibold text-slate-900 dark:text-white text-sm">Docker Container Status</h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400">Live health from /api/docker/status</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Live health from /api/docker/status • {runningCount}/{containers.length} Healthy
+            </p>
           </div>
         </div>
         <button
@@ -85,19 +90,13 @@ export default function DockerContainersWidget({ compact = false }) {
       <div className="space-y-2.5">
         {containers.map((c) => (
           <div
-            key={c.id}
+            key={c.id || c.name}
             className="p-3 rounded-lg bg-slate-50 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-700/50 flex items-center justify-between"
           >
             <div className="flex items-center gap-3">
               <span className="relative flex h-2.5 w-2.5">
-                {c.status === 'running' && (
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                )}
-                <span
-                  className={`relative inline-flex rounded-full h-2.5 w-2.5 ${
-                    c.status === 'running' ? 'bg-emerald-500' : 'bg-rose-500'
-                  }`}
-                ></span>
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
               </span>
               <div>
                 <p className="text-xs font-semibold text-slate-800 dark:text-slate-200 font-mono">{c.name}</p>

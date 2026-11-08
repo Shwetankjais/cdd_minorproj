@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { Search, GitBranch, CheckCircle2, XCircle, Clock, User, Filter, ArrowUpDown } from 'lucide-react';
+import { Search, GitBranch, CheckCircle2, XCircle, Clock, User, Loader2 } from 'lucide-react';
 import { useThemeAndProject } from '../../context/ThemeAndProjectContext';
 
 export default function RunsHistoryTable() {
-  const { runs, selectedRun, setSelectedRun } = useThemeAndProject();
+  const { runs, selectedRun, setSelectedRun, runsLoading } = useThemeAndProject();
 
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
@@ -22,10 +22,10 @@ export default function RunsHistoryTable() {
     if (searchTerm.trim()) {
       const q = searchTerm.toLowerCase();
       const match =
-        run.id.toLowerCase().includes(q) ||
-        run.branch.toLowerCase().includes(q) ||
-        run.commit.toLowerCase().includes(q) ||
-        run.author.toLowerCase().includes(q);
+        (run.id && run.id.toLowerCase().includes(q)) ||
+        (run.branch && run.branch.toLowerCase().includes(q)) ||
+        (run.commit && run.commit.toLowerCase().includes(q)) ||
+        (run.author && run.author.toLowerCase().includes(q));
       if (!match) return false;
     }
     return true;
@@ -91,7 +91,14 @@ export default function RunsHistoryTable() {
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-            {filteredRuns.length === 0 ? (
+            {runsLoading ? (
+              <tr>
+                <td colSpan={6} className="py-8 text-center text-slate-400">
+                  <Loader2 className="w-5 h-5 animate-spin mx-auto mb-1 text-sky-500" />
+                  <span>Loading live pipeline runs...</span>
+                </td>
+              </tr>
+            ) : filteredRuns.length === 0 ? (
               <tr>
                 <td colSpan={6} className="py-8 text-center text-slate-400">
                   No pipeline runs matched your search criteria.
@@ -99,12 +106,12 @@ export default function RunsHistoryTable() {
               </tr>
             ) : (
               filteredRuns.map((run) => {
-                const isSelected = selectedRun.id === run.id;
+                const isSelected = selectedRun && (selectedRun.id === run.id || selectedRun.rawId === run.rawId);
                 const isPassed = run.status === 'Passed';
 
                 return (
                   <tr
-                    key={run.id}
+                    key={run.id || run.rawId}
                     onClick={() => setSelectedRun(run)}
                     className={`cursor-pointer transition-colors ${
                       isSelected
