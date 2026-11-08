@@ -448,3 +448,4 @@ export const mockGitStatus = {
     { path: 'frontend/src/services/api.js', status: 'M', type: 'Modified' },
   ],
 };
+
