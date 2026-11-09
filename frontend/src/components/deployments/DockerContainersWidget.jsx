@@ -114,3 +114,4 @@ export default function DockerContainersWidget({ compact = false }) {
     </div>
   );
 }
+
