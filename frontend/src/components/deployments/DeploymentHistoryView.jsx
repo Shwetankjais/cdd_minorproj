@@ -5,7 +5,7 @@ import { mockDeployments } from '../../services/mockData';
 
 export default function DeploymentHistoryView({ compact = false }) {
   const [deployments, setDeployments] = useState(mockDeployments);
-  const [filterHours, setFilterHours] = useState('all'); // '1', '2', '24', 'all'
+  const [filterHours, setFilterHours] = useState('all');
   const [loading, setLoading] = useState(false);
   const [actionFeedback, setActionFeedback] = useState(null);
 
@@ -28,9 +28,9 @@ export default function DeploymentHistoryView({ compact = false }) {
   }, [filterHours, fetchDeployments]);
 
   const handleRollback = (version) => {
-    setActionFeedback(`Initiating rollback to ${version}... Verification canary deployed.`);
+    setActionFeedback(`Initiating rollback to ${version}...`);
     setTimeout(() => {
-      setActionFeedback(`Successfully rolled back cluster release to stable tag ${version}.`);
+      setActionFeedback(`Successfully rolled back cluster release to tag ${version}.`);
       setTimeout(() => setActionFeedback(null), 4000);
     }, 1200);
   };
@@ -38,49 +38,47 @@ export default function DeploymentHistoryView({ compact = false }) {
   const handleRedeploy = (version) => {
     setActionFeedback(`Triggering fast redeployment pipeline for ${version}...`);
     setTimeout(() => {
-      setActionFeedback(`Redeployment of ${version} completed. Health checks 100% green.`);
+      setActionFeedback(`Redeployment of ${version} completed with 100% health.`);
       setTimeout(() => setActionFeedback(null), 4000);
     }, 1200);
   };
 
   if (compact) {
     return (
-      <div className="p-5 rounded-2xl bg-white dark:bg-[#1C1E24] border border-[#E2E8F0] dark:border-[#323742] shadow-warm-sm transition-all duration-200 flex flex-col justify-between">
+      <div className="p-4 rounded-lg bg-white dark:bg-[#14171F] border border-[#E2E8F0] dark:border-[#262930] transition-colors flex flex-col justify-between">
         <div>
-          <div className="flex items-center justify-between pb-3 border-b border-[#E2E8F0] dark:border-[#2D3748] mb-3">
+          <div className="flex items-center justify-between pb-2.5 border-b border-[#E2E8F0] dark:border-[#262930] mb-3">
             <div className="flex items-center gap-2">
-              <div className="p-1.5 rounded-lg bg-[#0A1128]/5 dark:bg-[#0D1B2A] text-[#0A1128] dark:text-[#D4AF37] border border-[#E2E8F0] dark:border-[#323742]">
-                <Rocket className="w-4 h-4" />
+              <div className="p-1 rounded bg-[#FAF8F5] dark:bg-[#1A1E29] text-[#0A1128] dark:text-[#D4AF37] border border-[#E2E8F0] dark:border-[#262930]">
+                <Rocket className="w-3.5 h-3.5" />
               </div>
-              <h3 className="text-sm font-bold text-[#0F172A] dark:text-[#F8FAFC]">Deployment History</h3>
+              <h3 className="text-xs sm:text-sm font-semibold text-[#0F172A] dark:text-[#F8FAFC]">Deployment History</h3>
             </div>
             {loading ? (
-              <Loader2 className="w-3.5 h-3.5 animate-spin text-[#D4AF37]" />
+              <Loader2 className="w-3 h-3 animate-spin text-[#D4AF37]" />
             ) : (
-              <span className="text-xs text-[#0A1128] dark:text-[#D4AF37] font-semibold cursor-pointer hover:underline">
+              <span className="text-[11px] font-mono text-[#0A1128] dark:text-[#D4AF37] hover:underline cursor-pointer">
                 View All →
               </span>
             )}
           </div>
 
-          <div className="space-y-2.5">
+          <div className="space-y-2">
             {deployments.slice(0, 4).map((d) => {
               const isDeployed = d.status === 'Deployed' || d.status === 'success';
               return (
                 <div
                   key={d.id || d.version}
-                  className="p-2.5 rounded-xl bg-[#FAF8F5] dark:bg-[#0D1B2A] border border-[#E2E8F0] dark:border-[#323742] flex items-center justify-between text-xs"
+                  className="p-2 rounded-md bg-[#FAF8F5] dark:bg-[#0B0E14] border border-[#E2E8F0] dark:border-[#262930] flex items-center justify-between text-xs"
                 >
-                  <div className="flex items-center gap-2.5">
-                    <span className="relative flex h-2 w-2">
-                      <span
-                        className={`relative inline-flex rounded-full h-2 w-2 ${
-                          isDeployed ? 'bg-emerald-500' : 'bg-[#E63946]'
-                        }`}
-                      ></span>
-                    </span>
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={`w-1.5 h-1.5 rounded-full ${
+                        isDeployed ? 'bg-emerald-500' : 'bg-[#E63946]'
+                      }`}
+                    ></span>
                     <div>
-                      <p className="font-mono font-bold text-[#0F172A] dark:text-[#F8FAFC]">{d.version}</p>
+                      <p className="font-mono font-bold text-[#0F172A] dark:text-[#F8FAFC] text-[11px]">{d.version}</p>
                       <p className="text-[10px] text-[#64748B] dark:text-[#94A3B8] font-mono">
                         {d.runId} • {d.commitHash}
                       </p>
@@ -89,133 +87,95 @@ export default function DeploymentHistoryView({ compact = false }) {
 
                   <div className="text-right">
                     <span
-                      className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-semibold ${
+                      className={`inline-block px-1.5 py-0.2 rounded text-[10px] font-mono font-semibold ${
                         isDeployed
-                          ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
-                          : 'bg-[#E63946]/10 text-[#E63946] border border-[#E63946]/30'
+                          ? 'bg-emerald-500/10 text-emerald-500'
+                          : 'bg-[#E63946]/10 text-[#E63946]'
                       }`}
                     >
                       {d.status}
                     </span>
-                    <p className="text-[10px] text-[#64748B] dark:text-[#94A3B8] mt-0.5">{d.relativeTime}</p>
+                    <p className="text-[10px] text-[#64748B] dark:text-[#94A3B8] font-mono mt-0.5">{d.relativeTime}</p>
                   </div>
                 </div>
               );
             })}
           </div>
         </div>
-
-        <div className="mt-3 pt-3 border-t border-[#E2E8F0] dark:border-[#2D3748] text-[11px] text-[#64748B] dark:text-[#94A3B8] flex items-center justify-between">
-          <span>
-            Active Target: <strong className="text-[#0F172A] dark:text-[#F8FAFC]">Kubernetes US-East</strong>
-          </span>
-          <span className="text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
-            <ShieldCheck className="w-3.5 h-3.5" /> 100% Healthy
-          </span>
-        </div>
       </div>
     );
   }
 
   return (
-    <div className="p-6 rounded-2xl bg-white dark:bg-[#1C1E24] border border-[#E2E8F0] dark:border-[#323742] shadow-warm-sm transition-all duration-200">
-      {/* Header & Filter Controls */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-[#E2E8F0] dark:border-[#2D3748] mb-5">
-        <div className="flex items-center gap-2.5">
-          <div className="p-2 rounded-xl bg-[#0A1128]/5 dark:bg-[#0D1B2A] text-[#0A1128] dark:text-[#D4AF37] border border-[#E2E8F0] dark:border-[#323742]">
-            <Rocket className="w-5 h-5" />
+    <div className="p-4 sm:p-5 rounded-lg bg-white dark:bg-[#14171F] border border-[#E2E8F0] dark:border-[#262930] transition-colors">
+      {/* Header and Filter Controls */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#E2E8F0] dark:border-[#262930] mb-4">
+        <div>
+          <div className="flex items-center gap-2">
+            <h3 className="text-sm font-semibold text-[#0F172A] dark:text-[#F8FAFC]">
+              Cluster Deployment History
+            </h3>
+            <span className="text-[11px] font-mono text-[#64748B] dark:text-[#94A3B8] hidden md:inline">
+              (Blue-Green Staging & Rollback Cockpit)
+            </span>
           </div>
-          <div>
-            <h2 className="text-base font-bold text-[#0F172A] dark:text-[#F8FAFC]">
-              Production Deployment Audit & Rollback Control
-            </h2>
-            <p className="text-xs text-[#64748B] dark:text-[#94A3B8]">
-              Live releases fetched from /api/deployments with instant 1-click rollback capability
-            </p>
-          </div>
+          <p className="text-xs font-mono text-[#64748B] dark:text-[#94A3B8] mt-0.5">
+            Production releases tracked across recent deployments
+          </p>
         </div>
 
-        {/* Time-Range Filter */}
-        <div className="flex items-center gap-1.5 bg-[#FAF8F5] dark:bg-[#0D1B2A] p-1 rounded-xl border border-[#E2E8F0] dark:border-[#323742]">
-          <span className="text-[11px] font-semibold text-[#64748B] dark:text-[#94A3B8] px-2 flex items-center gap-1">
-            <Filter className="w-3 h-3" /> Time Range:
-          </span>
-          <button
-            onClick={() => setFilterHours('1')}
-            className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
-              filterHours === '1'
-                ? 'bg-white dark:bg-[#23272F] text-[#0F172A] dark:text-[#F8FAFC] shadow-sm border border-[#E2E8F0] dark:border-[#323742]'
-                : 'text-[#64748B] hover:text-[#0F172A] dark:text-[#94A3B8] dark:hover:text-[#F8FAFC]'
-            }`}
-          >
-            Last 1h
-          </button>
-          <button
-            onClick={() => setFilterHours('2')}
-            className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
-              filterHours === '2'
-                ? 'bg-white dark:bg-[#23272F] text-[#0F172A] dark:text-[#F8FAFC] shadow-sm border border-[#E2E8F0] dark:border-[#323742]'
-                : 'text-[#64748B] hover:text-[#0F172A] dark:text-[#94A3B8] dark:hover:text-[#F8FAFC]'
-            }`}
-          >
-            Last 2 Hours
-          </button>
-          <button
-            onClick={() => setFilterHours('24')}
-            className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
-              filterHours === '24'
-                ? 'bg-white dark:bg-[#23272F] text-[#0F172A] dark:text-[#F8FAFC] shadow-sm border border-[#E2E8F0] dark:border-[#323742]'
-                : 'text-[#64748B] hover:text-[#0F172A] dark:text-[#94A3B8] dark:hover:text-[#F8FAFC]'
-            }`}
-          >
-            Last 24h
-          </button>
-          <button
-            onClick={() => setFilterHours('all')}
-            className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
-              filterHours === 'all'
-                ? 'bg-white dark:bg-[#23272F] text-[#0F172A] dark:text-[#F8FAFC] shadow-sm border border-[#E2E8F0] dark:border-[#323742]'
-                : 'text-[#64748B] hover:text-[#0F172A] dark:text-[#94A3B8] dark:hover:text-[#F8FAFC]'
-            }`}
-          >
-            All Deployments
-          </button>
+        {/* Filter Buttons */}
+        <div className="flex items-center gap-1.5">
+          <Filter className="w-3.5 h-3.5 text-[#64748B] dark:text-[#94A3B8]" />
+          {['1', '2', '24', 'all'].map((hours) => (
+            <button
+              key={hours}
+              onClick={() => setFilterHours(hours)}
+              className={`px-2 py-1 rounded-md text-xs font-mono transition-colors ${
+                filterHours === hours
+                  ? 'bg-[#0A1128] text-white dark:bg-[#D4AF37] dark:text-[#0A1128] font-semibold'
+                  : 'bg-[#FAF8F5] dark:bg-[#1A1E29] text-[#64748B] dark:text-[#94A3B8] border border-[#E2E8F0] dark:border-[#262930]'
+              }`}
+            >
+              {hours === 'all' ? 'All' : `${hours}h`}
+            </button>
+          ))}
         </div>
       </div>
 
-      {/* Action Feedback Banner */}
+      {/* Action Toast Feedback */}
       {actionFeedback && (
-        <div className="mb-4 p-3 rounded-xl bg-[#FAF8F5] dark:bg-[#0D1B2A] border border-[#D4AF37]/50 text-xs text-[#0A1128] dark:text-[#D4AF37] flex items-center justify-between animate-pulse">
-          <span className="font-medium">{actionFeedback}</span>
-          <RotateCcw className="w-3.5 h-3.5 animate-spin text-[#D4AF37]" />
+        <div className="mb-3 p-2.5 rounded-md bg-[#FAF8F5] dark:bg-[#1A1E29] border border-[#D4AF37]/40 text-xs font-mono text-[#0F172A] dark:text-[#F8FAFC] flex items-center justify-between">
+          <span>{actionFeedback}</span>
+          <ShieldCheck className="w-4 h-4 text-emerald-500" />
         </div>
       )}
 
-      {/* Deployment Table */}
-      <div className="overflow-x-auto rounded-xl border border-[#E2E8F0] dark:border-[#323742]">
+      {/* Table of Deployments */}
+      <div className="overflow-x-auto rounded-md border border-[#E2E8F0] dark:border-[#262930]">
         <table className="w-full text-left text-xs border-collapse">
           <thead>
-            <tr className="bg-[#FAF8F5] dark:bg-[#0D1B2A] text-[#64748B] dark:text-[#94A3B8] border-b border-[#E2E8F0] dark:border-[#323742] font-semibold">
-              <th className="py-3 px-3.5">Version & Tag</th>
-              <th className="py-3 px-3">Run & Commit</th>
-              <th className="py-3 px-3">Environment</th>
-              <th className="py-3 px-3">Status</th>
-              <th className="py-3 px-3">Timestamp</th>
-              <th className="py-3 px-3 text-right">Actions</th>
+            <tr className="bg-[#FAF8F5] dark:bg-[#0B0E14] text-[#64748B] dark:text-[#94A3B8] border-b border-[#E2E8F0] dark:border-[#262930] font-mono text-[11px]">
+              <th className="py-2.5 px-3">Release Tag</th>
+              <th className="py-2.5 px-3">Target Env</th>
+              <th className="py-2.5 px-3">Commit SHA</th>
+              <th className="py-2.5 px-3">Status</th>
+              <th className="py-2.5 px-3">Time</th>
+              <th className="py-2.5 px-3 text-right">Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-[#E2E8F0] dark:divide-[#2D3748]">
+          <tbody className="divide-y divide-[#E2E8F0] dark:divide-[#262930]">
             {loading ? (
               <tr>
                 <td colSpan={6} className="py-8 text-center text-[#64748B] dark:text-[#94A3B8]">
-                  <Loader2 className="w-5 h-5 animate-spin mx-auto mb-1 text-[#D4AF37]" />
-                  <span>Loading live deployments from /api/deployments...</span>
+                  <Loader2 className="w-4 h-4 animate-spin mx-auto mb-1 text-[#D4AF37]" />
+                  <span className="font-mono text-xs">Loading deployments...</span>
                 </td>
               </tr>
             ) : deployments.length === 0 ? (
               <tr>
-                <td colSpan={6} className="py-8 text-center text-[#64748B] dark:text-[#94A3B8]">
-                  No deployments found for the selected time window.
+                <td colSpan={6} className="py-8 text-center text-[#64748B] dark:text-[#94A3B8] font-mono text-xs">
+                  No deployments found in the selected timeframe.
                 </td>
               </tr>
             ) : (
@@ -223,52 +183,55 @@ export default function DeploymentHistoryView({ compact = false }) {
                 const isDeployed = d.status === 'Deployed' || d.status === 'success';
 
                 return (
-                  <tr key={d.id || d.version} className="hover:bg-[#FAF8F5]/80 dark:hover:bg-[#23272F]/50 transition-colors">
-                    <td className="py-3.5 px-3.5 font-bold font-mono text-[#0F172A] dark:text-[#F8FAFC] flex items-center gap-2">
-                      <span className={`w-2 h-2 rounded-full ${isDeployed ? 'bg-emerald-500' : 'bg-[#E63946]'}`}></span>
+                  <tr key={d.id || d.version} className="hover:bg-[#FAF8F5]/60 dark:hover:bg-[#1A1E29]/50 transition-colors">
+                    {/* Release Tag */}
+                    <td className="py-2.5 px-3 font-mono font-semibold text-[#0F172A] dark:text-[#F8FAFC]">
                       {d.version}
                     </td>
 
-                    <td className="py-3 px-3 font-mono text-[#0F172A] dark:text-[#F8FAFC]">
-                      <span className="text-[#0A1128] dark:text-[#D4AF37] font-semibold">{d.runId}</span> • {d.commitHash}
+                    {/* Environment */}
+                    <td className="py-2.5 px-3 font-mono text-[#64748B] dark:text-[#94A3B8]">
+                      {d.environment || 'Production'}
                     </td>
 
-                    <td className="py-3 px-3 text-[#64748B] dark:text-[#94A3B8]">{d.environment}</td>
+                    {/* Commit SHA */}
+                    <td className="py-2.5 px-3 font-mono text-[11px] text-[#64748B] dark:text-[#94A3B8]">
+                      {d.commitHash || '121fac2'}
+                    </td>
 
-                    <td className="py-3 px-3">
+                    {/* Status */}
+                    <td className="py-2.5 px-3">
                       <span
-                        className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full font-semibold text-[11px] ${
+                        className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold ${
                           isDeployed
-                            ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
-                            : 'bg-[#E63946]/10 text-[#E63946] border border-[#E63946]/30'
+                            ? 'bg-emerald-500/10 text-emerald-500'
+                            : 'bg-[#E63946]/10 text-[#E63946]'
                         }`}
                       >
                         {isDeployed ? <CheckCircle2 className="w-3 h-3" /> : <XCircle className="w-3 h-3" />}
-                        {d.status}
+                        <span>{d.status}</span>
                       </span>
                     </td>
 
-                    <td className="py-3 px-3 text-[#64748B] dark:text-[#94A3B8]">
-                      {d.timestamp} ({d.relativeTime})
+                    {/* Time */}
+                    <td className="py-2.5 px-3 font-mono tabular-nums text-[#64748B] dark:text-[#94A3B8]">
+                      {d.timestamp || d.relativeTime}
                     </td>
 
-                    <td className="py-3 px-3 text-right">
+                    {/* Actions */}
+                    <td className="py-2.5 px-3 text-right">
                       <div className="flex items-center justify-end gap-1.5">
-                        {d.canRollback && (
-                          <button
-                            onClick={() => handleRollback(d.version)}
-                            className="px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-[#FAF8F5] hover:bg-[#E2E8F0] dark:bg-[#23272F] dark:hover:bg-[#323742] text-[#0F172A] dark:text-[#F8FAFC] border border-[#E2E8F0] dark:border-[#323742] hover:border-[#E63946] hover:text-[#E63946] transition-colors flex items-center gap-1"
-                            title="Rollback cluster to this release tag"
-                          >
-                            <RotateCcw className="w-3 h-3" />
-                            Rollback
-                          </button>
-                        )}
                         <button
                           onClick={() => handleRedeploy(d.version)}
-                          className="px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-[#D4AF37]/15 hover:bg-[#D4AF37]/25 text-[#0A1128] dark:text-[#D4AF37] transition-colors border border-[#D4AF37]/30"
+                          className="px-2 py-0.5 rounded text-[10px] font-mono font-medium border border-[#E2E8F0] dark:border-[#262930] hover:border-[#D4AF37] text-[#0F172A] dark:text-[#F8FAFC] transition-colors"
                         >
                           Redeploy
+                        </button>
+                        <button
+                          onClick={() => handleRollback(d.version)}
+                          className="px-2 py-0.5 rounded text-[10px] font-mono font-medium text-[#E63946] border border-[#E63946]/30 hover:bg-[#E63946]/10 transition-colors"
+                        >
+                          Rollback
                         </button>
                       </div>
                     </td>

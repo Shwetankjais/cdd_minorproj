@@ -32,7 +32,7 @@ describe('DevPulse Upgrades: Auth Gate, Workspace Hub & AI Copilot', () => {
 
   it('navigates to Workspaces & Repo Hub view', () => {
     renderApp();
-    const workspaceNavBtn = screen.getByText(/Workspaces & Repo Hub/i);
+    const workspaceNavBtn = screen.getByRole('button', { name: /Workspaces/i });
     fireEvent.click(workspaceNavBtn);
 
     expect(screen.getByText(/DevPulse Collaborative Workspace Hub/i)).toBeInTheDocument();
@@ -64,7 +64,7 @@ describe('DevPulse Upgrades: Auth Gate, Workspace Hub & AI Copilot', () => {
 
     // Dashboard should be back
     await waitFor(() => {
-      expect(screen.getByText(/Welcome to DevPulse/i)).toBeInTheDocument();
+      expect(screen.getByText(/cdd_minorproj/i)).toBeInTheDocument();
     });
   });
 });

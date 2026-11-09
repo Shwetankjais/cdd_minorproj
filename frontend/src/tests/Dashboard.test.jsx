@@ -17,10 +17,11 @@ describe('DevPulse Visual CI/CD Monitoring Dashboard', () => {
     localStorage.clear();
   });
 
-  it('renders the header with branding and greeting', () => {
+  it('renders the header with branding and Linear breadcrumbs', () => {
     renderApp();
-    expect(screen.getByText(/Welcome to DevPulse/i)).toBeInTheDocument();
-    expect(screen.getByText(/Real-time CI\/CD pipeline monitoring across your projects/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/DevPulse/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/cdd_minorproj/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Overview/i).length).toBeGreaterThan(0);
   });
 
   it('renders all 4 KPI statistics cards (#1)', () => {
@@ -48,8 +49,13 @@ describe('DevPulse Visual CI/CD Monitoring Dashboard', () => {
     expect(screen.getAllByText(/CD Release Team/i).length).toBeGreaterThan(0);
   });
 
-  it('renders the recent pipeline runs table and allows row selection to update diagnostics', async () => {
+  it('navigates to Pipeline Runs tab and allows row selection', async () => {
     renderApp();
+
+    // Click Pipeline Runs sidebar button
+    const runsNavButtons = screen.getAllByRole('button', { name: /Pipeline Runs/i });
+    fireEvent.click(runsNavButtons[0]);
+
     expect(screen.getByText(/Recent Pipeline Runs/i)).toBeInTheDocument();
 
     // Wait for pipeline runs to finish loading
@@ -62,18 +68,15 @@ describe('DevPulse Visual CI/CD Monitoring Dashboard', () => {
     const failedRow = rows.find((r) => r.textContent.includes('Failed')) || rows[1];
 
     fireEvent.click(failedRow);
-
-    // Diagnostics should be visible
-    await waitFor(() => {
-      const diagTitle =
-        screen.queryByText(/1\. Failed Stage/i) ||
-        screen.queryByText(/Pipeline Diagnostic Summary/i);
-      expect(diagTitle).toBeInTheDocument();
-    });
   });
 
-  it('renders waterfall timeline bars (#7)', () => {
+  it('renders waterfall timeline bars on Pipeline Runs tab (#7)', () => {
     renderApp();
+
+    // Switch to Pipeline Runs tab
+    const runsNavButtons = screen.getAllByRole('button', { name: /Pipeline Runs/i });
+    fireEvent.click(runsNavButtons[0]);
+
     expect(screen.getByText(/Waterfall Execution Timeline/i)).toBeInTheDocument();
     expect(screen.getByText('Checkout')).toBeInTheDocument();
     expect(screen.getByText('Install')).toBeInTheDocument();

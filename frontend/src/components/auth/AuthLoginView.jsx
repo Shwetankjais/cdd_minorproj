@@ -16,7 +16,7 @@ import {
 import { useThemeAndProject } from '../../context/ThemeAndProjectContext';
 
 export default function AuthLoginView() {
-  const { login, isDark } = useThemeAndProject();
+  const { login } = useThemeAndProject();
 
   const [email, setEmail] = useState('shwetank@devpulse.io');
   const [name, setName] = useState('Shwetank Jaiswal');
@@ -56,25 +56,25 @@ export default function AuthLoginView() {
   };
 
   return (
-    <div className="min-h-screen bg-[#070D1F] text-[#F8FAFC] flex flex-col justify-between selection:bg-[#D4AF37] selection:text-[#0A1128] font-sans antialiased">
-      {/* Top Navigation Bar from Screenshot 1 */}
-      <header className="px-6 py-4 border-b border-[#323742] bg-[#0A1128]/80 backdrop-blur-md flex items-center justify-between">
+    <div className="min-h-screen bg-[#0B0E14] text-[#F8FAFC] flex flex-col justify-between selection:bg-[#D4AF37] selection:text-[#0A1128] font-sans antialiased">
+      {/* Top Navigation Bar */}
+      <header className="px-5 py-3 border-b border-[#262930] bg-[#0B0E14] flex items-center justify-between">
         <div className="flex items-center gap-2 text-xs font-mono">
-          <div className="w-6 h-6 rounded-lg bg-[#1C1E24] border border-[#D4AF37]/40 flex items-center justify-center text-[#D4AF37]">
-            <Activity className="w-3.5 h-3.5" />
+          <div className="w-5 h-5 rounded-md bg-[#14171F] border border-[#262930] flex items-center justify-center text-[#D4AF37]">
+            <Activity className="w-3 h-3 stroke-[2.2]" />
           </div>
-          <span className="font-bold text-[#F8FAFC]">devpulse</span>
-          <span className="text-[#94A3B8]">/</span>
-          <span className="text-[#D4AF37] font-semibold">auth & onboarding</span>
+          <span className="font-semibold text-[#F8FAFC]">devpulse</span>
+          <span className="text-[#64748B]">/</span>
+          <span className="text-[#D4AF37]">auth</span>
         </div>
 
         <div className="flex items-center gap-3 text-xs">
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#1C1E24] border border-[#323742] text-[#94A3B8]">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-[#14171F] border border-[#262930] text-[#94A3B8] font-mono text-[11px]">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
             <span>Cluster Online</span>
           </div>
-          <div className="flex items-center gap-2 pl-2 border-l border-[#323742]">
-            <span className="w-6 h-6 rounded-full bg-[#D4AF37] text-[#0A1128] font-bold text-[10px] flex items-center justify-center">
+          <div className="flex items-center gap-1.5 pl-2 border-l border-[#262930]">
+            <span className="w-5 h-5 rounded-md bg-[#D4AF37] text-[#0A1128] font-mono font-bold text-[10px] flex items-center justify-center">
               D
             </span>
             <span className="font-mono text-[11px] text-[#94A3B8] hidden sm:inline">developer@devpulse</span>
@@ -82,50 +82,49 @@ export default function AuthLoginView() {
         </div>
       </header>
 
-      {/* Main Terminal Frame (from Screenshot 1) */}
-      <main className="flex-1 max-w-6xl w-full mx-auto p-4 sm:p-8 flex items-center">
-        <div className="w-full bg-[#0A1128] rounded-2xl border border-[#323742] shadow-2xl overflow-hidden">
-          {/* Terminal Title Bar with macOS dots */}
-          <div className="px-5 py-3 bg-[#0D1B2A] border-b border-[#323742] flex items-center justify-between">
+      {/* Main Terminal Frame */}
+      <main className="flex-1 max-w-5xl w-full mx-auto p-4 sm:p-6 flex items-center">
+        <div className="w-full bg-[#14171F] rounded-lg border border-[#262930] overflow-hidden">
+          {/* Terminal Title Bar */}
+          <div className="px-4 py-2 bg-[#0B0E14] border-b border-[#262930] flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <span className="w-3 h-3 rounded-full bg-[#E63946]"></span>
-              <span className="w-3 h-3 rounded-full bg-[#D4AF37]"></span>
-              <span className="w-3 h-3 rounded-full bg-emerald-500"></span>
-              <span className="ml-3 font-mono text-xs text-[#94A3B8] flex items-center gap-1.5">
-                <Terminal className="w-3.5 h-3.5 text-[#D4AF37]" />
+              <span className="w-2.5 h-2.5 rounded-full bg-[#E63946]"></span>
+              <span className="w-2.5 h-2.5 rounded-full bg-[#D4AF37]"></span>
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+              <span className="ml-2 font-mono text-[11px] text-[#94A3B8] flex items-center gap-1.5">
+                <Terminal className="w-3 h-3 text-[#D4AF37]" />
                 developer@devpulse: ~
               </span>
             </div>
-            <div className="text-[11px] font-mono text-[#94A3B8]">DevPulse Gateway v1.4</div>
+            <div className="text-[10px] font-mono text-[#64748B]">DevPulse Gateway v1.4</div>
           </div>
 
           {/* Terminal Interior Grid */}
-          <div className="p-6 sm:p-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+          <div className="p-6 sm:p-8 grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
             {/* Left Column: Typography & Onboarding Form */}
-            <div className="lg:col-span-7 space-y-6">
-              <div className="space-y-1">
-                <p className="font-mono text-xs text-[#94A3B8]"># collaborative development & devops project</p>
-                <p className="font-mono text-xs text-[#D4AF37]">developer@devpulse:~$ ./devpulse --login</p>
+            <div className="lg:col-span-7 space-y-4">
+              <div className="space-y-0.5">
+                <p className="font-mono text-[11px] text-[#64748B]"># collaborative development & devops project</p>
+                <p className="font-mono text-[11px] text-[#D4AF37]">developer@devpulse:~$ ./devpulse --login</p>
               </div>
 
-              {/* Bold Typography from Screenshot 1 */}
+              {/* Bold Typography */}
               <div className="leading-none tracking-tight select-none">
-                <h1 className="text-4xl sm:text-6xl font-black text-[#F8FAFC] tracking-tight">BUILD.</h1>
-                <h1 className="text-4xl sm:text-6xl font-black text-[#D4AF37] tracking-tight">TEST.</h1>
-                <h1 className="text-4xl sm:text-6xl font-black text-[#F8FAFC] tracking-tight">DEPLOY.</h1>
+                <h1 className="text-3xl sm:text-5xl font-black text-[#F8FAFC] tracking-tight">BUILD.</h1>
+                <h1 className="text-3xl sm:text-5xl font-black text-[#D4AF37] tracking-tight">TEST.</h1>
+                <h1 className="text-3xl sm:text-5xl font-black text-[#F8FAFC] tracking-tight">DEPLOY.</h1>
               </div>
 
-              <p className="text-xs sm:text-sm text-[#94A3B8] leading-relaxed max-w-xl">
-                <strong>DevPulse</strong>: Visual CI/CD Pipeline Monitoring Dashboard. A centralized platform that turns
-                complex build, test, and deployment logs into real-time pipeline status, execution history, statistics,
-                and role-based handoff alerts.
+              <p className="text-xs text-[#94A3B8] leading-relaxed max-w-lg">
+                <strong>DevPulse</strong>: Visual CI/CD Pipeline Monitoring Dashboard. Centralized platform turning
+                build, test, and deployment telemetry into live pipeline status, execution history, and role-based handoff alerts.
               </p>
 
               {/* Login & Role Selection Form */}
-              <form onSubmit={handleLogin} className="space-y-4 pt-2">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <form onSubmit={handleLogin} className="space-y-3 pt-1">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                   <div>
-                    <label className="block text-[11px] font-mono text-[#94A3B8] uppercase tracking-wider mb-1">
+                    <label className="block text-[10px] font-mono text-[#94A3B8] uppercase tracking-wider mb-1">
                       Email Address
                     </label>
                     <input
@@ -134,11 +133,11 @@ export default function AuthLoginView() {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="developer@devpulse.io"
-                      className="w-full px-3 py-2 rounded-xl bg-[#1C1E24] border border-[#323742] text-xs font-mono text-[#F8FAFC] focus:border-[#D4AF37] focus:ring-1 focus:ring-[#D4AF37]/30 outline-none"
+                      className="w-full px-2.5 py-1.5 rounded-md bg-[#0B0E14] border border-[#262930] text-xs font-mono text-[#F8FAFC] focus:border-[#D4AF37] outline-none"
                     />
                   </div>
                   <div>
-                    <label className="block text-[11px] font-mono text-[#94A3B8] uppercase tracking-wider mb-1">
+                    <label className="block text-[10px] font-mono text-[#94A3B8] uppercase tracking-wider mb-1">
                       Display Name
                     </label>
                     <input
@@ -147,17 +146,17 @@ export default function AuthLoginView() {
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                       placeholder="Your Name"
-                      className="w-full px-3 py-2 rounded-xl bg-[#1C1E24] border border-[#323742] text-xs font-mono text-[#F8FAFC] focus:border-[#D4AF37] focus:ring-1 focus:ring-[#D4AF37]/30 outline-none"
+                      className="w-full px-2.5 py-1.5 rounded-md bg-[#0B0E14] border border-[#262930] text-xs font-mono text-[#F8FAFC] focus:border-[#D4AF37] outline-none"
                     />
                   </div>
                 </div>
 
                 {/* Team Role Pill Selector */}
                 <div>
-                  <label className="block text-[11px] font-mono text-[#94A3B8] uppercase tracking-wider mb-1.5">
+                  <label className="block text-[10px] font-mono text-[#94A3B8] uppercase tracking-wider mb-1">
                     Select Your CI/CD Role (Cross-Team Handoff)
                   </label>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
                     {teamRoles.map((r) => {
                       const isSelected = role === r.id;
                       return (
@@ -165,14 +164,14 @@ export default function AuthLoginView() {
                           key={r.id}
                           type="button"
                           onClick={() => setRole(r.id)}
-                          className={`p-2.5 rounded-xl border text-left transition-all ${
+                          className={`p-2 rounded-md border text-left transition-colors ${
                             isSelected
-                              ? 'bg-[#1C1E24] border-[#D4AF37] ring-1 ring-[#D4AF37] text-[#F8FAFC] shadow-md'
-                              : 'bg-[#0D1B2A] border-[#323742] text-[#94A3B8] hover:border-[#D4AF37]/40'
+                              ? 'bg-[#1A1E29] border-[#D4AF37] text-[#F8FAFC]'
+                              : 'bg-[#0B0E14] border-[#262930] text-[#94A3B8] hover:border-[#D4AF37]/40'
                           }`}
                         >
-                          <p className="font-bold text-xs truncate">{r.label}</p>
-                          <p className="text-[10px] text-[#94A3B8] mt-0.5 truncate">{r.desc}</p>
+                          <p className="font-semibold text-xs truncate">{r.label}</p>
+                          <p className="text-[10px] font-mono text-[#64748B] mt-0.5 truncate">{r.desc}</p>
                         </button>
                       );
                     })}
@@ -181,45 +180,44 @@ export default function AuthLoginView() {
 
                 {/* GitHub Repository Target */}
                 <div>
-                  <label className="block text-[11px] font-mono text-[#94A3B8] uppercase tracking-wider mb-1">
+                  <label className="block text-[10px] font-mono text-[#94A3B8] uppercase tracking-wider mb-1">
                     Target GitHub Repository
                   </label>
                   <div className="relative">
-                    <Github className="w-4 h-4 text-[#94A3B8] absolute left-3 top-1/2 -translate-y-1/2" />
+                    <Github className="w-3.5 h-3.5 text-[#64748B] absolute left-2.5 top-1/2 -translate-y-1/2" />
                     <input
                       type="text"
                       value={githubRepo}
                       onChange={(e) => setGithubRepo(e.target.value)}
                       placeholder="owner/repository"
-                      className="w-full pl-9 pr-3 py-2 rounded-xl bg-[#1C1E24] border border-[#323742] text-xs font-mono text-[#F8FAFC] focus:border-[#D4AF37] focus:ring-1 focus:ring-[#D4AF37]/30 outline-none"
+                      className="w-full pl-8 pr-2.5 py-1.5 rounded-md bg-[#0B0E14] border border-[#262930] text-xs font-mono text-[#F8FAFC] focus:border-[#D4AF37] outline-none"
                     />
                   </div>
                 </div>
 
-                {/* Action Buttons from Screenshot 1 */}
-                <div className="flex flex-wrap items-center gap-3 pt-2">
+                {/* Action Buttons */}
+                <div className="flex flex-wrap items-center gap-2 pt-1">
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="px-5 py-2.5 rounded-xl bg-[#D4AF37] hover:bg-[#C5A059] text-[#0A1128] font-bold text-xs font-mono flex items-center gap-2 shadow-lg shadow-[#D4AF37]/20 transition-all cursor-pointer"
+                    className="flex items-center gap-2 px-4 py-2 rounded-md text-xs font-mono font-semibold bg-[#D4AF37] text-[#0A1128] hover:bg-[#C5A059] transition-colors cursor-pointer"
                   >
                     <span>$ connect --github</span>
-                    <ArrowRight className="w-4 h-4 stroke-[2.5]" />
+                    <ArrowRight className="w-3 h-3" />
                   </button>
 
                   <button
                     type="button"
                     onClick={handleQuickDemoConnect}
-                    className="px-4 py-2.5 rounded-xl bg-[#1C1E24] hover:bg-[#23272F] border border-[#323742] text-xs font-mono text-[#F8FAFC] flex items-center gap-2 transition-all cursor-pointer"
+                    className="px-3 py-2 rounded-md text-xs font-mono font-medium bg-[#14171F] hover:bg-[#1A1E29] border border-[#262930] text-[#94A3B8] hover:text-[#F8FAFC] transition-colors"
                   >
-                    <Sparkles className="w-3.5 h-3.5 text-[#D4AF37]" />
-                    <span>Quick Demo Connect</span>
+                    Quick Demo Connect
                   </button>
 
                   <button
                     type="button"
                     onClick={() => setShowMethodology(true)}
-                    className="px-3 py-2 text-xs font-mono text-[#94A3B8] hover:text-[#F8FAFC] underline decoration-[#323742] transition-colors"
+                    className="px-3 py-2 rounded-md text-xs font-mono font-medium text-[#64748B] hover:text-[#D4AF37] transition-colors"
                   >
                     man methodology
                   </button>
@@ -227,64 +225,44 @@ export default function AuthLoginView() {
               </form>
             </div>
 
-            {/* Right Column: Live Boot Terminal Card from Screenshot 1 */}
-            <div className="lg:col-span-5">
-              <div className="p-5 rounded-2xl bg-[#1C1E24] border border-[#323742] shadow-xl space-y-4">
-                <div className="flex items-center justify-between pb-3 border-b border-[#323742]">
-                  <div className="flex items-center gap-2">
-                    <Server className="w-4 h-4 text-[#D4AF37]" />
-                    <span className="font-mono text-xs font-bold text-[#F8FAFC]">devpulse - starting services</span>
-                  </div>
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
-                </div>
+            {/* Right Column: Live Boot Terminal Card */}
+            <div className="lg:col-span-5 bg-[#0B0E14] rounded-md border border-[#262930] p-4 font-mono text-xs space-y-3">
+              <div className="flex items-center justify-between pb-2 border-b border-[#262930] text-[11px] text-[#64748B]">
+                <span>devpulse - starting services</span>
+                <span className="text-emerald-500 font-bold">READY</span>
+              </div>
 
-                <div className="font-mono text-xs space-y-2 text-[#94A3B8] leading-relaxed">
-                  <div className="flex items-center gap-2">
-                    <span className="text-emerald-400 font-bold">[ OK ]</span>
-                    <span>Started git-flow.service</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-emerald-400 font-bold">[ OK ]</span>
-                    <span>Started github-actions.service</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-emerald-400 font-bold">[ OK ]</span>
-                    <span>Started fastapi.service (:8000)</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-emerald-400 font-bold">[ OK ]</span>
-                    <span>Started postgresql.service (:5432)</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-emerald-400 font-bold">[ OK ]</span>
-                    <span>Started docker-compose.service</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-emerald-400 font-bold">[ READY ]</span>
-                    <span className="text-[#F8FAFC]">Authenticated & linked to GitHub</span>
-                  </div>
+              <div className="space-y-1.5 text-[11px]">
+                <div className="flex items-center gap-2">
+                  <span className="text-emerald-500 font-bold">[ OK ]</span>
+                  <span className="text-[#94A3B8]">Started git-flow.service</span>
                 </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-emerald-500 font-bold">[ OK ]</span>
+                  <span className="text-[#94A3B8]">Started github-actions.service</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-emerald-500 font-bold">[ OK ]</span>
+                  <span className="text-[#94A3B8]">Started fastapi.service (:8000)</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-emerald-500 font-bold">[ OK ]</span>
+                  <span className="text-[#94A3B8]">Started postgresql.service (:5432)</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-emerald-500 font-bold">[ OK ]</span>
+                  <span className="text-[#94A3B8]">Started docker-compose.service</span>
+                </div>
+                <div className="flex items-center gap-2 pt-1 border-t border-[#262930]">
+                  <span className="text-[#D4AF37] font-bold">[ WAIT ]</span>
+                  <span className="text-[#F8FAFC]">Waiting for repository login_</span>
+                </div>
+              </div>
 
-                <div className="pt-3 border-t border-[#323742] space-y-2">
-                  <p className="text-[11px] font-mono text-[#D4AF37]">
-                    run: connect --github
-                  </p>
-                  <p className="text-[10px] text-[#94A3B8]">
-                    Target Repo: <span className="font-mono text-[#F8FAFC]">https://github.com/{githubRepo}</span>
-                  </p>
-                </div>
-
-                {/* Team Handoff Architecture Badge */}
-                <div className="p-3 rounded-xl bg-[#0D1B2A] border border-[#323742] flex items-center justify-between text-xs">
-                  <div className="flex items-center gap-2">
-                    <Layers className="w-4 h-4 text-[#D4AF37]" />
-                    <div>
-                      <p className="font-bold text-[#F8FAFC] text-[11px]">4-Team Pipeline Lifecycle</p>
-                      <p className="text-[10px] text-[#94A3B8]">Dev → CI → QA → CD (80% Handoff)</p>
-                    </div>
-                  </div>
-                  <ShieldCheck className="w-4 h-4 text-emerald-400" />
-                </div>
+              <div className="p-2.5 rounded bg-[#14171F] border border-[#262930] space-y-1 text-[10px]">
+                <p className="text-[#64748B]">Active Repository Target:</p>
+                <p className="text-[#D4AF37] font-bold truncate">https://github.com/Shwetankjais/cdd_minorproj</p>
+                <p className="text-[#64748B] pt-1">4-Team Handoff Matrix Active: Dev → CI → QA → CD</p>
               </div>
             </div>
           </div>
@@ -293,44 +271,31 @@ export default function AuthLoginView() {
 
       {/* Methodology Modal */}
       {showMethodology && (
-        <div className="fixed inset-0 z-50 bg-[#070D1F]/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="w-full max-w-lg bg-[#1C1E24] border border-[#323742] rounded-2xl p-6 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-[#323742]">
-              <h3 className="font-bold text-sm text-[#F8FAFC] flex items-center gap-2">
-                <HelpCircle className="w-4 h-4 text-[#D4AF37]" />
-                DevPulse CI/CD Methodology
-              </h3>
-              <button
-                onClick={() => setShowMethodology(false)}
-                className="text-[#94A3B8] hover:text-[#F8FAFC]"
-              >
-                <X className="w-4 h-4" />
+        <div className="fixed inset-0 bg-[#070D1F]/70 flex items-center justify-center p-4 z-50">
+          <div className="bg-[#14171F] border border-[#262930] rounded-md max-w-lg w-full p-5 space-y-3">
+            <div className="flex items-center justify-between pb-2 border-b border-[#262930]">
+              <h3 className="font-semibold text-xs text-[#F8FAFC] font-mono">DevPulse Architecture & Methodology</h3>
+              <button onClick={() => setShowMethodology(false)}>
+                <X className="w-4 h-4 text-[#94A3B8]" />
               </button>
             </div>
-            <div className="text-xs text-[#94A3B8] space-y-3 leading-relaxed">
+            <div className="text-xs text-[#94A3B8] space-y-2 leading-relaxed">
               <p>
-                <strong>Cross-Team Handoff Mechanism:</strong> DevPulse monitors multi-stage automated pipelines and triggers
-                predictive pre-alerts at 75–80% stage completion so QA and Release teams know exactly when to stage their environments.
+                DevPulse orchestrates a continuous monitoring workflow across four engineering teams:
               </p>
-              <p>
-                <strong>Stack:</strong> React 18 frontend with Recharts analytics, FastAPI Python backend, Docker Compose, PostgreSQL 15, and real-time Git sync.
+              <ul className="list-disc pl-4 space-y-1 font-mono text-[11px]">
+                <li><strong>Developer (0–25%):</strong> Commits and pushes branch updates to GitHub.</li>
+                <li><strong>CI Build Team (25–50%):</strong> Compiles dependencies, runs linters and compiler gates.</li>
+                <li><strong>QA Testing Team (50–80%):</strong> Executes unit and integration test suites via Vitest and Pytest.</li>
+                <li><strong>CD Release Team (80–100%):</strong> Builds container images, evaluates blue-green deployment, and pushes to production.</li>
+              </ul>
+              <p className="text-[11px] text-[#64748B]">
+                At the 80% mark, an automated pre-notification alert notifies downstream release engineers before the deployment phase commences.
               </p>
             </div>
-            <button
-              onClick={() => setShowMethodology(false)}
-              className="w-full py-2 rounded-xl bg-[#D4AF37] text-[#0A1128] font-bold text-xs"
-            >
-              Close
-            </button>
           </div>
         </div>
       )}
-
-      {/* Footer */}
-      <footer className="px-6 py-4 border-t border-[#323742] bg-[#0A1128]/80 text-center text-xs text-[#94A3B8] font-mono">
-        DevPulse Visual CI/CD Monitoring • Connected to GitHub Repository: Shwetankjais/cdd_minorproj
-      </footer>
     </div>
   );
 }
-

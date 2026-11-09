@@ -6,12 +6,10 @@ import {
   Activity,
   History,
   Rocket,
-  Sparkles,
-  ShieldCheck,
-  X,
-  Layers,
-  FlaskConical,
   AlertOctagon,
+  Sparkles,
+  X,
+  ShieldCheck,
 } from 'lucide-react';
 import DockerContainersWidget from '../deployments/DockerContainersWidget';
 import { useThemeAndProject } from '../../context/ThemeAndProjectContext';
@@ -26,7 +24,7 @@ export default function Sidebar({ activeTab, setActiveTab }) {
     workspaces,
   } = useThemeAndProject();
 
-  const primaryNavItems = [
+  const navItems = [
     {
       id: 'overview',
       aliases: ['dashboard'],
@@ -36,38 +34,44 @@ export default function Sidebar({ activeTab, setActiveTab }) {
     {
       id: 'workspaces',
       aliases: ['projects'],
-      label: 'Workspaces & Repo Hub',
+      label: 'Workspaces',
       icon: FolderGit2,
       badge: `${workspaces.length || 4}`,
     },
     {
-      id: 'source-control',
-      aliases: [],
-      label: 'Source Control (1-Click Git)',
-      icon: GitCommit,
-      badge: 'Sync',
-      onClick: () => {
-        setActiveTab('source-control');
-        toggleGitDrawer();
-      },
+      id: 'runs',
+      aliases: ['pipelines', 'history'],
+      label: 'Pipeline Runs',
+      icon: History,
+    },
+    {
+      id: 'diagnostics',
+      aliases: ['tests', 'errors'],
+      label: 'Diagnostics & Tests',
+      icon: AlertOctagon,
     },
     {
       id: 'analytics',
-      aliases: ['pipelines'],
-      label: 'Analytics & Charts',
+      aliases: [],
+      label: 'Analytics',
       icon: Activity,
-    },
-    {
-      id: 'runs',
-      aliases: ['history', 'tests', 'errors'],
-      label: 'Runs & Diagnostics',
-      icon: History,
     },
     {
       id: 'deployments',
       aliases: [],
       label: 'Deployments & Docker',
       icon: Rocket,
+    },
+    {
+      id: 'source-control',
+      aliases: [],
+      label: 'Source Control',
+      icon: GitCommit,
+      badge: 'Git',
+      onClick: () => {
+        setActiveTab('source-control');
+        toggleGitDrawer();
+      },
     },
   ];
 
@@ -80,52 +84,49 @@ export default function Sidebar({ activeTab, setActiveTab }) {
       {/* Mobile Backdrop Overlay (< 1024px) */}
       {isSidebarOpen && (
         <div
-          className="fixed inset-0 bg-[#070D1F]/70 backdrop-blur-sm z-40 lg:hidden"
+          className="fixed inset-0 bg-[#070D1F]/70 z-40 lg:hidden"
           onClick={closeSidebar}
           aria-hidden="true"
         ></div>
       )}
 
-      {/* Sidebar Panel: Collapsible on < 1024px, fixed/static on lg: */}
+      {/* Sidebar Desktop Shell: h-screen flex-shrink-0 */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 w-64 bg-[#0A1128] text-[#94A3B8] flex flex-col flex-shrink-0 h-screen border-r border-[#323742] select-none transform transition-transform duration-200 ease-in-out lg:static lg:translate-x-0 ${
-          isSidebarOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full'
+        className={`fixed inset-y-0 left-0 z-50 w-56 bg-white dark:bg-[#0B0E14] text-[#64748B] dark:text-[#94A3B8] flex flex-col flex-shrink-0 h-screen border-r border-[#E2E8F0] dark:border-[#262930] select-none transform transition-transform duration-150 ease-in-out lg:static lg:translate-x-0 ${
+          isSidebarOpen ? 'translate-x-0 shadow-xl' : '-translate-x-full'
         }`}
       >
         {/* Brand Header */}
-        <div className="p-5 border-b border-[#323742] flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-[#0D1B2A] to-[#1C1E24] border border-[#D4AF37]/40 flex items-center justify-center text-[#D4AF37] shadow-lg shadow-[#000000]/40">
-              <Activity className="w-5 h-5 stroke-[2.5]" />
+        <div className="p-3.5 border-b border-[#E2E8F0] dark:border-[#262930] flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 rounded-md bg-[#0A1128] dark:bg-[#14171F] border border-[#262930] flex items-center justify-center text-[#D4AF37]">
+              <Activity className="w-3.5 h-3.5 stroke-[2.2]" />
             </div>
-            <div>
-              <div className="flex items-center gap-1.5">
-                <span className="font-bold text-lg text-[#F8FAFC] tracking-tight">DevPulse</span>
-                <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#D4AF37]/15 text-[#D4AF37] border border-[#D4AF37]/30 font-semibold uppercase">
-                  v1.4
-                </span>
-              </div>
-              <p className="text-[11px] text-[#94A3B8] font-medium">CI/CD Pipeline Monitoring</p>
+            <div className="flex items-center gap-1.5">
+              <span className="font-semibold text-xs tracking-tight text-[#0F172A] dark:text-[#F8FAFC]">DevPulse</span>
+              <span className="text-[10px] font-mono px-1 py-0.2 rounded border border-[#E2E8F0] dark:border-[#262930] text-[#64748B] dark:text-[#94A3B8]">
+                v1.4
+              </span>
             </div>
           </div>
 
           {/* Close button on mobile */}
           <button
             onClick={closeSidebar}
-            className="p-1 rounded-lg text-[#94A3B8] hover:text-[#F8FAFC] hover:bg-[#1C1E24] lg:hidden"
+            className="p-1 rounded-md text-[#64748B] dark:text-[#94A3B8] hover:text-[#0F172A] dark:hover:text-[#F8FAFC] lg:hidden"
             aria-label="Close sidebar"
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4" />
           </button>
         </div>
 
-        {/* Navigation Links */}
-        <nav className="flex-1 px-3 py-4 space-y-1.5 overflow-y-auto">
-          <div className="px-3 pb-2 text-[10px] font-bold uppercase tracking-wider text-[#94A3B8]">
-            Core Views
+        {/* Navigation Links (Linear/Vercel Style) */}
+        <nav className="flex-1 px-2.5 py-3 space-y-1 overflow-y-auto">
+          <div className="px-2 pb-1 text-[10px] font-mono uppercase tracking-wider text-[#94A3B8] dark:text-[#64748B]">
+            Navigation
           </div>
 
-          {primaryNavItems.map((item) => {
+          {navItems.map((item) => {
             const Icon = item.icon;
             const active = isItemActive(item);
 
@@ -140,24 +141,24 @@ export default function Sidebar({ activeTab, setActiveTab }) {
                   }
                   closeSidebar();
                 }}
-                className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 ${
+                className={`w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-xs font-medium transition-colors ${
                   active
-                    ? 'bg-[#1C1E24] text-[#F8FAFC] border-l-4 border-[#D4AF37] shadow-sm font-semibold'
-                    : 'text-[#94A3B8] hover:text-[#F8FAFC] hover:bg-[#1C1E24]/60'
+                    ? 'bg-[#FAF8F5] dark:bg-[#14171F] text-[#0F172A] dark:text-[#F8FAFC] font-semibold border border-[#E2E8F0] dark:border-[#262930]'
+                    : 'text-[#64748B] dark:text-[#94A3B8] hover:text-[#0F172A] dark:hover:text-[#F8FAFC] hover:bg-[#FAF8F5] dark:hover:bg-[#14171F]/50'
                 }`}
               >
                 <Icon
-                  className={`w-4 h-4 flex-shrink-0 ${
-                    active ? 'text-[#D4AF37]' : 'text-[#94A3B8]'
+                  className={`w-3.5 h-3.5 flex-shrink-0 ${
+                    active ? 'text-[#D4AF37]' : 'text-[#64748B] dark:text-[#94A3B8]'
                   }`}
                 />
                 <span className="truncate">{item.label}</span>
                 {item.badge && (
                   <span
-                    className={`ml-auto text-[10px] px-2 py-0.5 rounded-full font-mono border ${
+                    className={`ml-auto text-[10px] font-mono px-1.5 py-0.2 rounded ${
                       active
-                        ? 'bg-[#D4AF37]/20 text-[#D4AF37] border-[#D4AF37]/40'
-                        : 'bg-[#1C1E24] text-[#94A3B8] border-[#323742]'
+                        ? 'bg-[#D4AF37]/15 text-[#0A1128] dark:text-[#D4AF37] border border-[#D4AF37]/30'
+                        : 'bg-[#FAF8F5] dark:bg-[#14171F] text-[#64748B] dark:text-[#94A3B8] border border-[#E2E8F0] dark:border-[#262930]'
                     }`}
                   >
                     {item.badge}
@@ -167,46 +168,36 @@ export default function Sidebar({ activeTab, setActiveTab }) {
             );
           })}
 
-          {/* Dedicated Copilot Action Row */}
-          <div className="pt-3">
-            <div className="px-3 pb-2 text-[10px] font-bold uppercase tracking-wider text-[#94A3B8]">
-              AI Companion
-            </div>
+          {/* AI Copilot Item */}
+          <div className="pt-2">
             <button
               onClick={() => {
                 toggleAiCopilot();
                 closeSidebar();
               }}
-              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all ${
+              className={`w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-xs font-medium transition-colors border ${
                 isAiCopilotOpen
-                  ? 'bg-[#1C1E24] text-[#D4AF37] border border-[#D4AF37]/50 shadow-sm'
-                  : 'text-[#F8FAFC] bg-[#1C1E24]/40 hover:bg-[#1C1E24] border border-[#323742]'
+                  ? 'bg-[#14171F] text-[#D4AF37] border-[#D4AF37]/50'
+                  : 'text-[#64748B] dark:text-[#94A3B8] hover:text-[#0F172A] dark:hover:text-[#F8FAFC] border-transparent hover:border-[#E2E8F0] dark:hover:border-[#262930]'
               }`}
             >
-              <Sparkles className="w-4 h-4 text-[#D4AF37]" />
-              <span className="truncate">DevPulse Copilot</span>
-              <span className="ml-auto w-2 h-2 rounded-full bg-emerald-400"></span>
+              <Sparkles className="w-3.5 h-3.5 text-[#D4AF37]" />
+              <span className="truncate">Copilot</span>
+              <span className="ml-auto w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
             </button>
           </div>
         </nav>
 
-        {/* Bottom Live Docker Health & CI/CD Status */}
-        <div className="p-3 border-t border-[#323742] space-y-3 bg-[#0D1B2A]">
+        {/* Bottom Docker Health & Engine Status */}
+        <div className="p-2.5 border-t border-[#E2E8F0] dark:border-[#262930] space-y-2 bg-[#FAF8F5] dark:bg-[#0B0E14]">
           <DockerContainersWidget compact={true} />
 
-          {/* Visual CI/CD Infinity Badge */}
-          <div className="p-3 rounded-xl bg-[#1C1E24] border border-[#323742] flex items-center justify-between shadow-sm">
+          <div className="px-2 py-1.5 rounded-md bg-white dark:bg-[#14171F] border border-[#E2E8F0] dark:border-[#262930] flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-              </span>
-              <div className="leading-tight">
-                <p className="text-[11px] font-semibold text-[#F8FAFC]">DevPulse Engine</p>
-                <p className="text-[10px] text-[#94A3B8] font-mono">Build • Test • Deploy</p>
-              </div>
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+              <span className="text-[11px] font-mono text-[#64748B] dark:text-[#94A3B8]">telemetry stream</span>
             </div>
-            <ShieldCheck className="w-4 h-4 text-emerald-400" />
+            <span className="text-[10px] font-mono text-emerald-500 font-medium">online</span>
           </div>
         </div>
       </aside>

@@ -16,293 +16,165 @@ import AuthLoginView from './components/auth/AuthLoginView';
 import WorkspaceHubView from './components/workspace/WorkspaceHubView';
 import AiCopilotSidebar from './components/ai/AiCopilotSidebar';
 import { useThemeAndProject } from './context/ThemeAndProjectContext';
-import { GitCommit, GitBranch, Terminal, RefreshCw, Layers } from 'lucide-react';
+import { GitCommit, ArrowRight, Activity, History, AlertOctagon, Rocket } from 'lucide-react';
 
 export default function App() {
   const {
     isAuthenticated,
     activeTab,
     setActiveTab,
-    projects,
-    activeProject,
-    setActiveProject,
     toggleGitDrawer,
   } = useThemeAndProject();
 
-  // If user is logged out, render the Auth & GitHub Gate (Screenshot 1)
+  // If user is logged out, render the Auth & GitHub Gate
   if (!isAuthenticated) {
     return <AuthLoginView />;
   }
 
-  // Treat 'dashboard' as alias for 'overview'
   const isOverview = activeTab === 'overview' || activeTab === 'dashboard';
+  const isRuns = activeTab === 'runs' || activeTab === 'pipelines' || activeTab === 'history';
+  const isDiagnostics = activeTab === 'diagnostics' || activeTab === 'tests' || activeTab === 'errors';
+  const isWorkspaces = activeTab === 'workspaces' || activeTab === 'projects';
+  const isAnalytics = activeTab === 'analytics';
+  const isDeployments = activeTab === 'deployments';
+  const isSourceControl = activeTab === 'source-control';
 
   return (
-    <div className="flex min-h-screen bg-[#FAF8F5] dark:bg-[#0A1128] text-[#0F172A] dark:text-[#F8FAFC] transition-colors duration-200">
-      {/* 1. Left Sidebar Navigation (Deep Midnight Navy #0A1128) - Collapsible on <1024px */}
+    <div className="flex h-screen overflow-hidden bg-[#FAF8F5] dark:bg-[#0B0E14] text-[#0F172A] dark:text-[#F8FAFC] transition-colors duration-150">
+      {/* 1. Left Sidebar Navigation (Desktop Shell: h-screen flex-shrink-0) */}
       <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
 
-      {/* Main Content Area: min-w-0 flex-1 overflow-x-hidden to eliminate layout squish */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-x-hidden overflow-y-auto">
-        {/* 2. Top Header & Project Switcher */}
+      {/* Main Content Area: h-screen overflow-hidden */}
+      <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
+        {/* 2. Top Header & Breadcrumb */}
         <Header />
 
-        {/* Dynamic Dedicated View by activeTab (Eliminates excessive vertical scrolling) */}
-        <main className="flex-1 p-4 sm:p-6 space-y-6 max-w-7xl mx-auto w-full min-w-0">
-          {/* View 1: Overview Dashboard (Complete KPI & Stage Matrix) */}
-          {isOverview && (
-            <>
-              {/* Row 1: 4 KPI Statistics Cards */}
-              <div className="min-w-0">
+        {/* Dynamic Dedicated View: Render ONLY the selected tab view (Zero Page Dump) */}
+        <main className="flex-1 p-3.5 sm:p-4 overflow-y-auto min-w-0">
+          <div className="max-w-7xl mx-auto w-full space-y-4">
+            {/* Tab 1: Overview (Fits 100% in 1 Viewport with ZERO Scroll) */}
+            {isOverview && (
+              <div className="space-y-4">
+                {/* Top Row: 4 compact KPI Statistics Cards */}
                 <KpiStatsGrid />
-              </div>
 
-              {/* Row 2: Visual Stage Flow + 80% Role Handoff Bar (Left 2/3) & Analytics Charts (Right 1/3) */}
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch min-w-0">
-                <div className="lg:col-span-2 min-w-0">
-                  <PipelineStageVisualizer />
-                </div>
-                <div className="lg:col-span-1 min-w-0">
-                  <BuildAnalyticsCharts />
+                {/* Center Card: 4-Stage Pipeline Visualizer + Role Handoff Bar */}
+                <PipelineStageVisualizer />
+
+                {/* Shortcut Navigation Pills to other dedicated tabs */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <button
+                    onClick={() => setActiveTab('runs')}
+                    className="p-3 rounded-lg bg-white dark:bg-[#14171F] border border-[#E2E8F0] dark:border-[#262930] hover:border-[#D4AF37]/50 text-left transition-colors flex items-center justify-between group cursor-pointer"
+                  >
+                    <div>
+                      <p className="text-xs font-semibold text-[#0F172A] dark:text-[#F8FAFC] flex items-center gap-1.5">
+                        <History className="w-3.5 h-3.5 text-[#D4AF37]" />
+                        <span>View Pipeline Runs & History</span>
+                      </p>
+                      <p className="text-[10px] font-mono text-[#64748B] dark:text-[#94A3B8] mt-0.5">
+                        Searchable runs & waterfall execution timeline
+                      </p>
+                    </div>
+                    <ArrowRight className="w-3.5 h-3.5 text-[#94A3B8] group-hover:text-[#D4AF37] transition-colors" />
+                  </button>
+
+                  <button
+                    onClick={() => setActiveTab('diagnostics')}
+                    className="p-3 rounded-lg bg-white dark:bg-[#14171F] border border-[#E2E8F0] dark:border-[#262930] hover:border-[#D4AF37]/50 text-left transition-colors flex items-center justify-between group cursor-pointer"
+                  >
+                    <div>
+                      <p className="text-xs font-semibold text-[#0F172A] dark:text-[#F8FAFC] flex items-center gap-1.5">
+                        <AlertOctagon className="w-3.5 h-3.5 text-[#E63946]" />
+                        <span>Diagnostics & Failure Analysis</span>
+                      </p>
+                      <p className="text-[10px] font-mono text-[#64748B] dark:text-[#94A3B8] mt-0.5">
+                        3-line root cause diagnosis & terminal logs
+                      </p>
+                    </div>
+                    <ArrowRight className="w-3.5 h-3.5 text-[#94A3B8] group-hover:text-[#D4AF37] transition-colors" />
+                  </button>
+
+                  <button
+                    onClick={() => setActiveTab('analytics')}
+                    className="p-3 rounded-lg bg-white dark:bg-[#14171F] border border-[#E2E8F0] dark:border-[#262930] hover:border-[#D4AF37]/50 text-left transition-colors flex items-center justify-between group cursor-pointer"
+                  >
+                    <div>
+                      <p className="text-xs font-semibold text-[#0F172A] dark:text-[#F8FAFC] flex items-center gap-1.5">
+                        <Activity className="w-3.5 h-3.5 text-[#D4AF37]" />
+                        <span>View Analytics & Charts</span>
+                      </p>
+                      <p className="text-[10px] font-mono text-[#64748B] dark:text-[#94A3B8] mt-0.5">
+                        Duration trend, pass rate donut & stage failures
+                      </p>
+                    </div>
+                    <ArrowRight className="w-3.5 h-3.5 text-[#94A3B8] group-hover:text-[#D4AF37] transition-colors" />
+                  </button>
                 </div>
               </div>
+            )}
 
-              {/* Row 3: Pipeline History Table (Left 2/3) & Diagnostic Stack (Right 1/3) */}
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start min-w-0">
-                <div className="lg:col-span-2 min-w-0">
-                  <RunsHistoryTable />
-                </div>
-                <div className="lg:col-span-1 space-y-6 min-w-0">
+            {/* Tab 2: Workspaces */}
+            {isWorkspaces && <WorkspaceHubView />}
+
+            {/* Tab 3: Pipeline Runs (Runs History + Waterfall Timeline) */}
+            {isRuns && (
+              <div className="space-y-4">
+                <RunsHistoryTable />
+                <WaterfallTimeline />
+              </div>
+            )}
+
+            {/* Tab 4: Diagnostics & Tests (Test Results + 3-Line Failure Explanation) */}
+            {isDiagnostics && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                   <TestSummaryCard />
                   <FailureExplanationPanel />
                 </div>
               </div>
+            )}
 
-              {/* Row 4: Waterfall Execution Timeline (Left 2/3) & Deployment History (Right 1/3) */}
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start min-w-0">
-                <div className="lg:col-span-2 min-w-0">
-                  <WaterfallTimeline />
-                </div>
-                <div className="lg:col-span-1 min-w-0">
-                  <DeploymentHistoryView compact={true} />
-                </div>
+            {/* Tab 5: Analytics (3-Chart Single-Screen Grid) */}
+            {isAnalytics && <BuildAnalyticsCharts fullGrid={true} />}
+
+            {/* Tab 6: Deployments & Docker */}
+            {isDeployments && (
+              <div className="space-y-4">
+                <DeploymentHistoryView compact={false} />
+                <DockerContainersWidget compact={false} />
               </div>
-            </>
-          )}
+            )}
 
-          {/* View 2: Antigravity-Style Workspace & Repo Hub (Screenshot 2 & 3) */}
-          {activeTab === 'workspaces' && <WorkspaceHubView />}
-
-          {/* View 3: Dedicated 1-Click Git Source Control View */}
-          {activeTab === 'source-control' && (
-            <div className="space-y-6 min-w-0">
-              <div className="p-6 rounded-2xl bg-white dark:bg-[#1C1E24] border border-[#E2E8F0] dark:border-[#323742] shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="w-8 h-8 rounded-lg bg-[#0A1128] text-[#D4AF37] border border-[#D4AF37]/40 flex items-center justify-center font-bold font-mono">
-                      <GitCommit className="w-4 h-4" />
-                    </span>
-                    <h2 className="text-xl font-bold text-[#0F172A] dark:text-[#F8FAFC]">
-                      Source Control Cockpit
+            {/* Tab 7: Source Control */}
+            {isSourceControl && (
+              <div className="space-y-4">
+                <div className="p-4 rounded-lg bg-white dark:bg-[#14171F] border border-[#E2E8F0] dark:border-[#262930] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div>
+                    <h2 className="text-sm font-semibold text-[#0F172A] dark:text-[#F8FAFC] flex items-center gap-2">
+                      <GitCommit className="w-4 h-4 text-[#D4AF37]" />
+                      <span>Source Control & GitHub Sync Cockpit</span>
                     </h2>
+                    <p className="text-xs font-mono text-[#64748B] dark:text-[#94A3B8] mt-0.5">
+                      Stage changed files, generate conventional commit messages, and push directly to GitHub.
+                    </p>
                   </div>
-                  <p className="text-xs text-[#64748B] dark:text-[#94A3B8]">
-                    Review modified/untracked files, auto-generate commit messages, and trigger 1-click push to GitHub.
-                  </p>
-                </div>
-
-                <div className="flex items-center gap-2">
                   <button
                     onClick={toggleGitDrawer}
-                    className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold bg-[#D4AF37] hover:bg-[#C5A059] text-[#0A1128] shadow-sm transition-all"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-mono font-semibold bg-[#D4AF37] text-[#0A1128] hover:bg-[#C5A059] transition-colors"
                   >
-                    <GitCommit className="w-4 h-4" />
+                    <GitCommit className="w-3.5 h-3.5" />
                     <span>Open 1-Click Git Drawer</span>
                   </button>
                 </div>
               </div>
-
-              {/* Connected Pipeline Context */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 min-w-0">
-                <div className="min-w-0">
-                  <WaterfallTimeline />
-                </div>
-                <div className="min-w-0">
-                  <RunsHistoryTable />
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* View 4: Analytics & Charts View */}
-          {activeTab === 'analytics' && (
-            <div className="space-y-6 min-w-0">
-              <div>
-                <h2 className="text-xl font-bold text-[#0F172A] dark:text-[#F8FAFC]">
-                  Build Analytics & Pipeline Health
-                </h2>
-                <p className="text-xs text-[#64748B] dark:text-[#94A3B8]">
-                  Historical build duration trends, test failure distributions, and pass rate statistics
-                </p>
-              </div>
-
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 min-w-0">
-                <div className="lg:col-span-2 min-w-0">
-                  <BuildAnalyticsCharts />
-                </div>
-                <div className="lg:col-span-1 min-w-0">
-                  <TestSummaryCard />
-                </div>
-              </div>
-
-              <div className="min-w-0">
-                <WaterfallTimeline />
-              </div>
-            </div>
-          )}
-
-          {/* View 5: Runs & Diagnostics Stack */}
-          {activeTab === 'runs' && (
-            <div className="space-y-6 min-w-0">
-              <div>
-                <h2 className="text-xl font-bold text-[#0F172A] dark:text-[#F8FAFC]">
-                  Pipeline Runs & Failure Diagnostics
-                </h2>
-                <p className="text-xs text-[#64748B] dark:text-[#94A3B8]">
-                  Select any failed pipeline run to review raw logs, root causes, and suggested fixes
-                </p>
-              </div>
-
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start min-w-0">
-                <div className="lg:col-span-2 min-w-0">
-                  <RunsHistoryTable />
-                </div>
-                <div className="lg:col-span-1 space-y-6 min-w-0">
-                  <FailureExplanationPanel />
-                  <TestSummaryCard />
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* View 6: Deployments & Docker Containers */}
-          {activeTab === 'deployments' && (
-            <div className="space-y-6 min-w-0">
-              <div>
-                <h2 className="text-xl font-bold text-[#0F172A] dark:text-[#F8FAFC]">
-                  Deployment History & Docker Cluster Health
-                </h2>
-                <p className="text-xs text-[#64748B] dark:text-[#94A3B8]">
-                  Inspect live release stages and cluster containers across devpulse-frontend, backend, and postgres
-                </p>
-              </div>
-
-              <DeploymentHistoryView compact={false} />
-              <DockerContainersWidget compact={false} />
-            </div>
-          )}
-
-          {/* Compatibility Views for Deep Links / Legacy Subtabs */}
-          {activeTab === 'pipelines' && (
-            <div className="space-y-6 min-w-0">
-              <PipelineStageVisualizer />
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 min-w-0">
-                <WaterfallTimeline />
-                <BuildAnalyticsCharts />
-              </div>
-            </div>
-          )}
-
-          {activeTab === 'history' && (
-            <div className="space-y-6 min-w-0">
-              <RunsHistoryTable />
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 min-w-0">
-                <TestSummaryCard />
-                <FailureExplanationPanel />
-              </div>
-            </div>
-          )}
-
-          {activeTab === 'tests' && (
-            <div className="space-y-6 min-w-0">
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 min-w-0">
-                <div className="lg:col-span-1 min-w-0">
-                  <TestSummaryCard />
-                </div>
-                <div className="lg:col-span-2 min-w-0">
-                  <FailureExplanationPanel />
-                </div>
-              </div>
-              <RunsHistoryTable />
-            </div>
-          )}
-
-          {activeTab === 'errors' && (
-            <div className="space-y-6 min-w-0">
-              <FailureExplanationPanel />
-              <RunsHistoryTable />
-            </div>
-          )}
-
-          {activeTab === 'projects' && (
-            <div className="space-y-6 min-w-0">
-              <div>
-                <h2 className="text-lg font-bold text-[#0F172A] dark:text-[#F8FAFC]">
-                  Active Projects & Repositories
-                </h2>
-                <p className="text-xs text-[#64748B] dark:text-[#94A3B8]">
-                  Select a repository to inspect its automated CI/CD pipeline health
-                </p>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 min-w-0">
-                {projects.map((proj) => {
-                  const isCurrent = proj.id === activeProject.id;
-                  return (
-                    <div
-                      key={proj.id}
-                      onClick={() => setActiveProject(proj)}
-                      className={`p-5 rounded-2xl border cursor-pointer transition-all ${
-                        isCurrent
-                          ? 'bg-white dark:bg-[#23272F] border-[#D4AF37] shadow-warm-md ring-1 ring-[#D4AF37]'
-                          : 'bg-white dark:bg-[#1C1E24] border-[#E2E8F0] dark:border-[#323742] hover:border-[#D4AF37]/50 dark:hover:border-[#2D3748]'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between mb-3">
-                        <span className="w-8 h-8 rounded-lg bg-[#0A1128]/5 dark:bg-[#0D1B2A] text-[#0A1128] dark:text-[#D4AF37] border border-[#E2E8F0] dark:border-[#323742] flex items-center justify-center font-bold font-mono text-xs">
-                          {proj.displayName ? proj.displayName.slice(0, 2).toUpperCase() : 'PR'}
-                        </span>
-                        <span
-                          className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
-                            proj.status === 'Healthy'
-                              ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
-                              : proj.status === 'Unstable'
-                              ? 'bg-[#F59E0B]/10 text-[#F59E0B]'
-                              : 'bg-[#E63946]/10 text-[#E63946]'
-                          }`}
-                        >
-                          {proj.status}
-                        </span>
-                      </div>
-                      <h3 className="font-mono font-bold text-sm text-[#0F172A] dark:text-[#F8FAFC] truncate">
-                        {proj.displayName || proj.name}
-                      </h3>
-                      <p className="text-xs text-[#64748B] dark:text-[#94A3B8] mt-1">
-                        {proj.passRate}% builds passing • {proj.lastAuthor}
-                      </p>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
+            )}
+          </div>
         </main>
       </div>
 
-      {/* 3. Right-Column Live AI Agent Copilot (Screenshot 3) */}
+      {/* Global Panels & Modals */}
       <AiCopilotSidebar />
-
-      {/* Global Modals & Drawers */}
       <SourceControlDrawer />
       <RawLogsModal />
     </div>
