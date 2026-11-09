@@ -97,7 +97,7 @@ For example, 45% overall means the build is 80% through its own range and can al
 
 The integrated dashboard, Compose stack, and four-job workflow have passed end-to-end verification. The API consumes GitHub Actions data, and the UI can fall back to bundled fixtures. Optional integrations such as a signed webhook destination and Docker daemon access depend on local configuration.
 
-v1.5.0 implements and tests the session, workspace, and chat contracts. Sidebar navigation, the launcher, and the right-column chat are frontend integration work. Docker health requires daemon access, and readiness responses report unavailable services explicitly.
+v1.5.0 implements and tests the session, workspace, and chat contracts. Sidebar navigation, the launcher, and the right-column chat are frontend integration work. Container metadata requires daemon access. In Compose, chat can report service reachability when daemon inspection is unavailable.
 
 ## 7. Folder Structure
 

@@ -1,8 +1,12 @@
 """Dispatch chat intents to the same operations used by the dashboard."""
+import os
 import re
 import shlex
 
+import httpx
 from fastapi import HTTPException
+from sqlalchemy import text as sql
+from sqlalchemy.exc import SQLAlchemyError
 
 from ..config import DEFAULT_PROJECT
 from ..routers import docker_monitor, pipeline
@@ -44,6 +48,29 @@ def commit(text, body, session, path):
     message = f"Commit {result['commit_sha']} pushed." if result["pushed"] else (
         f"Commit {result['commit_sha']} saved locally. Push failed: {result['push_error']}")
     return reply(message, "COMMIT_PUSH", **{key: value for key, value in result.items() if key != "message"})
+
+
+def docker_status(request):
+    status = docker_monitor.inspect_containers()
+    status["source"] = "docker" if status["available"] else "unavailable"
+    if status["available"] or not os.getenv("DEVPULSE_COMPOSE"):
+        return status
+    # Compose has no daemon socket by default. Probe the services themselves.
+    try:
+        frontend = httpx.get("http://frontend/api/health", timeout=1).is_success
+    except httpx.HTTPError:
+        frontend = False
+    try:
+        with request.app.state.engine.connect() as connection:
+            connection.execute(sql("SELECT 1"))
+        database = request.app.state.engine.dialect.name == "postgresql"
+    except SQLAlchemyError:
+        database = False
+    reachable = {"devpulse-frontend": frontend, "devpulse-backend": True, "devpulse-db": database}
+    return {**status, "source": "service_probe", "containers": [
+        {**item, "status": "reachable" if reachable[item["name"]] else "unreachable"}
+        for item in status["containers"]
+    ]}
 
 
 def execute(body, session, request, db):
@@ -92,7 +119,7 @@ def execute(body, session, request, db):
                      "NAVIGATE_DIAGNOSTICS", target_view="errors", run_id=latest["id"], diagnosis=diagnosis,
                      engine=engine)
     if action == "docker":
-        status = docker_monitor.inspect_containers()
+        status = docker_status(request)
         lines = [f"{item['name']}: {item['status']}" for item in status["containers"]]
         return reply("\n".join(lines), "DOCKER_STATUS", docker=status, engine=engine)
     if action == "handoff":
