@@ -1,5 +1,6 @@
 """Run bounded, non-interactive Git commands on repositories inside configured roots."""
 
+import base64
 import os
 import re
 import subprocess
@@ -16,10 +17,25 @@ class GitError(Exception):
     pass
 
 
-def run_git(path, *args, timeout=15, report_failure=False):
+def run_git(path, *args, timeout=15, report_failure=False, github_auth=None):
     env = dict(os.environ, GIT_TERMINAL_PROMPT="0", GIT_LITERAL_PATHSPECS="1")
     for key in ("GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE"):
         env.pop(key, None)
+    sensitive = []
+    if github_auth:
+        username, token, destination = github_auth
+        basic = base64.b64encode(f"{username}:{token}".encode()).decode()
+        settings = {
+            f"http.{destination}.extraHeader": f"Authorization: Basic {basic}",
+            "http.followRedirects": "false",
+            "credential.helper": "",
+        }
+        count = int(env.get("GIT_CONFIG_COUNT", "0"))
+        for index, (key, value) in enumerate(settings.items(), start=count):
+            env[f"GIT_CONFIG_KEY_{index}"] = key
+            env[f"GIT_CONFIG_VALUE_{index}"] = value
+        env["GIT_CONFIG_COUNT"] = str(count + len(settings))
+        sensitive = [token, basic]
     try:
         result = subprocess.run(
             ["git", "-c", "core.hooksPath=/dev/null", "-c", "core.fsmonitor=false",
@@ -33,6 +49,8 @@ def run_git(path, *args, timeout=15, report_failure=False):
             output = (result.stderr + b"\n" + result.stdout).decode(errors="replace").strip()
             # Hide credentials embedded in remote URLs before returning Git output.
             output = re.sub(r"(https?://)[^/\s@]+@", r"\1[redacted]@", output)
+            for secret in sensitive:
+                output = output.replace(secret, "[redacted]")
             if output:
                 raise GitError(output[:8000])
         raise GitError(f"Git {args[0]} failed. Check repository permissions and Git configuration.")
@@ -84,7 +102,7 @@ def status(path=None):
     return {"path": str(root), "branch": branch_name(root), "files": files}
 
 
-def open_or_clone(path, url):
+def open_or_clone(path, url, branch=None):
     if bool(path) == bool(url):
         raise GitError("Supply exactly one local path or clone URL.")
     if path:
@@ -101,17 +119,25 @@ def open_or_clone(path, url):
         target = WORKSPACE / name
         if target.exists() or target.is_symlink():
             raise GitError("A workspace entry already uses this name. Open it by path instead.")
-        run_git(WORKSPACE, "clone", "--", url, name, timeout=120)
+        options = (f"--branch={branch}",) if branch else ()
+        run_git(WORKSPACE, "clone", *options, "--", url, name, timeout=120)
         return repo_path(str(target))
 
 
-def commit_push(path, files, message, expected_branch=None):
+def commit_push(path, files, message, expected_branch=None, *, github_auth=None, github_project=None):
     with WRITE_LOCK:
         root = repo_path(path)
         branch = branch_name(root)
         if not branch or (expected_branch and expected_branch != branch):
             raise GitError("Check out the requested branch before committing.")
-        run_git(root, "remote", "get-url", "--push", "origin")
+        push_url = run_git(root, "remote", "get-url", "--push", "--all", "origin").decode().splitlines()
+        destination = "origin"
+        if github_auth:
+            expected = f"https://github.com/{github_project}".lower()
+            if len(push_url) != 1 or push_url[0].lower().removesuffix(".git") != expected:
+                raise GitError("Chat pushes require the verified repository as the only HTTPS push destination.")
+            # Push the exact configured remote that was verified above.
+            destination = push_url[0]
         if not message.strip():
             raise GitError("Enter a commit message.")
         if run_git(root, "ls-files", "--unmerged"):
@@ -134,7 +160,8 @@ def commit_push(path, files, message, expected_branch=None):
                   "files": [name.decode("utf-8", errors="replace") for name in committed.split(b"\0") if name],
                   "pushed": False}
         try:
-            run_git(root, "push", "origin", f"{sha}:refs/heads/{branch}", timeout=90, report_failure=True)
+            run_git(root, "push", "--no-follow-tags", destination, f"{sha}:refs/heads/{branch}",
+                    timeout=90, report_failure=True, github_auth=(*github_auth, destination) if github_auth else None)
         except GitError as exc:
             return {**result, "message": "Commit saved locally. Push failed.", "push_error": str(exc)}
         return {**result, "pushed": True}

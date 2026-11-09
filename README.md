@@ -34,7 +34,7 @@ Frontend versions reflect [the npm lockfile](frontend/package-lock.json). The ba
                          localhost
   +-----------------------------------------------------------+
   | Browser                                                   |
-  | React SPA, charts, run inspector, source control drawer   |
+  | React SPA: sidebar views, launcher, and right-column chat |
   +------------+-------------------------------+--------------+
                | page and assets               | default REST API
                v                               | localhost:8000/api
@@ -46,6 +46,7 @@ Frontend versions reflect [the npm lockfile](frontend/package-lock.json). The ba
                v                               v
   +-----------------------------------------------------------+
   | FastAPI :8000                                             |
+  | Auth sessions, workspace hub, agent action executor       |
   | Pipeline runs, handoffs, diagnostics, deployments, Git    |
   +-------------+----------------------+----------------------+
                 |                      |
@@ -56,9 +57,12 @@ Frontend versions reflect [the npm lockfile](frontend/package-lock.json). The ba
   +-----------------------------+
 
   GitHub Actions -- optional signed HTTPS notification --> FastAPI
+  OpenAI or Gemini <-- optional read-only tool selection --> Agent
 ```
 
 The Vite client defaults to `http://localhost:8000/api`. For a local Vite session, `VITE_API_URL` can override that URL. The Compose Nginx server also proxies `/api/` to FastAPI and serves the SPA on port 5173. The UI uses bundled demo responses when some requests fail. The API separately labels seeded, simulated, and GitHub run records using `source`.
+
+The v1.5 backend adds a session gate for workspace and agent requests. The frontend integration uses a login and GitHub connection screen, a workspace launcher, sidebar view switching instead of one long dashboard, and a right-column agent panel. These UI changes are maintained on the frontend track.
 
 ## 4. Ideas and Concepts Implemented
 
@@ -84,11 +88,16 @@ For example, 45% overall means the build is 80% through its own range and can al
 | Deployment history | The API returns timestamped seed records and can record signed GitHub events or CI verification notifications. Filters support 1, 2, or 24 hours, plus all records. |
 | Docker status | The API inspects the three DevPulse containers when it can reach a Docker daemon. Default Compose starts without a Docker socket mount. The dashboard currently substitutes health and resource readings when telemetry is missing. Use `docker compose ps` or the detailed API response for verification. |
 | Source Control Sync | The drawer reads working-tree status and displays added, modified, and deleted paths. The backend supports repository opening, GitHub HTTPS cloning, and authenticated commit and push. The drawer submits only the checked paths. |
+| Authentication and GitHub connection | Login creates a 12-hour bearer session. GitHub public access supports monitoring. A PAT proves account identity and can unlock chat pushes for the verified collaborative repository. |
+| Collaborative workspace launcher | Open or initialize allowed folders, clone a GitHub HTTPS repository, or link a publicly verified repository for remote monitoring. Each session has its own role, active workspace, and recent history. |
+| Action-executing agent | Chat starts simulations, reads Git and Docker status, diagnoses the latest failure, reports handoffs, and returns navigation actions. Explicitly selected Git files can be committed and pushed using the linked GitHub credential. Optional OpenAI or Gemini tool calling helps interpret less direct read-only requests. |
 | Theme and navigation | The React SPA provides light and dark modes, project selection, and dedicated views for runs, tests, errors, and deployments. |
 
 ## 6. Development Progress
 
 The integrated dashboard, Compose stack, and four-job workflow have passed end-to-end verification. The API consumes GitHub Actions data, and the UI can fall back to bundled fixtures. Optional integrations such as a signed webhook destination and Docker daemon access depend on local configuration.
+
+v1.5.0 implements and tests the session, workspace, and chat contracts. Sidebar navigation, the launcher, and the right-column chat are frontend integration work. Docker health requires daemon access, and readiness responses report unavailable services explicitly.
 
 ## 7. Folder Structure
 
@@ -107,14 +116,21 @@ cdd_minor/
 |   |   |-- config.py               # Environment and path defaults
 |   |   |-- database.py             # SQLAlchemy engine and sessions
 |   |   |-- seed.py                 # Demo runs and deployments
-|   |   |-- models/                 # Database models
+|   |   |-- models/                 # Runs, deployments, user_session.py
 |   |   |-- schemas/                # Request validation
 |   |   |-- routers/
+|   |   |   |-- auth.py
+|   |   |   |-- workspaces.py
+|   |   |   |-- ai_agent.py
 |   |   |   |-- pipeline.py
 |   |   |   |-- deployments.py
 |   |   |   |-- docker_monitor.py
 |   |   |   `-- git_control.py
 |   |   `-- services/
+|   |       |-- session_service.py
+|   |       |-- workspace_service.py
+|   |       |-- agent_service.py
+|   |       |-- agent_model.py
 |   |       |-- github_service.py
 |   |       |-- handoff_service.py
 |   |       |-- error_analyzer.py
@@ -216,6 +232,14 @@ Open [http://localhost:5173](http://localhost:5173/). Stop any Compose services 
 
 | Method and route | Purpose |
 | --- | --- |
+| `POST /api/auth/login` | Start a session with a name, email, role, and optional GitHub username and PAT. |
+| `GET /api/auth/session` | Read the session profile, GitHub verification, and active workspace. |
+| `POST /api/auth/connect-github` | Validate a GitHub username and PAT against the collaborative repository. |
+| `POST /api/auth/logout` | Revoke the current session. |
+| `GET /api/workspaces` | List available and recently opened workspaces. |
+| `POST /api/workspaces/open` | Open a server-side folder and activate it. |
+| `POST /api/workspaces/clone` | Clone or link a GitHub repository and activate it. |
+| `POST /api/agent/chat` | Execute an agent action and return its result and optional navigation target. |
 | `GET /api/health` | Check API and database connectivity. |
 | `GET /api/projects` | List monitored projects. |
 | `GET /api/pipeline/summary` | Return aggregate run counts and recent runs. |
@@ -230,6 +254,12 @@ Open [http://localhost:5173](http://localhost:5173/). Stop any Compose services 
 | `POST /api/git/commit-push` | Commit explicitly selected paths and attempt a push to the checked-out branch on `origin`. |
 | `POST /api/webhooks/github` | Receive signed GitHub events or CI verification notifications. |
 
+Send `Authorization: Bearer <session_token>` to the new session, workspace, and chat routes after login. Roles are `Developer`, `CI Team`, `QA Testing Team`, and `CD Release Team`. The email and name are self-declared profile fields. A public lookup can report GitHub connectivity without verifying an identity. The session bearer is stored as a hash. A verified PAT is held only in server process memory and must be re-linked after a restart. The existing drawer uses its separate Git write token.
+
+Workspaces are resolved on the API host or inside the container. In Compose, the repository is at `/workspace/project` and cloned repositories go under `/workspace/project/workspace`. The `devops-lab` and `shop-api` entries are templates. Per-session workspace selection does not create separate copies of a shared Git checkout.
+
+Agent commands include `/simulate`, `/status`, `/explain`, `/docker`, `/handoff`, `go to deployments`, and `connect repo <url>`. The agent returns `message`, `action_triggered`, and action-specific data such as `run`, `target_view`, or `commit_sha`. Use `/commit Update docs -- README.md` or provide an explicit `files` array to request a Git write. Chat pushes use the linked PAT for the verified GitHub HTTPS remote and report if the commit was saved locally but rejected remotely. Provider tools can select read-only operations.
+
 FastAPI serves interactive request schemas at [http://localhost:8000/docs](http://localhost:8000/docs).
 
 ## 11. Configuration
@@ -238,6 +268,8 @@ Start from [backend/.env.example](backend/.env.example) when you need local over
 
 | Setting | Purpose |
 | --- | --- |
+| `OPENAI_API_KEY`, `GEMINI_API_KEY` | Optional model keys. OpenAI takes precedence when both are configured. Recognized commands run through the deterministic executor. |
+| `OPENAI_MODEL`, `GEMINI_MODEL` | Optional model overrides for the configured provider. |
 | `DATABASE_URL` | Selects the database. Compose configures PostgreSQL automatically. |
 | `GITHUB_TOKEN` | Optional Actions read token. Public repositories can be queried without it. |
 | `GITHUB_WEBHOOK_SECRET` | Verifies incoming HMAC signatures. To enable CI delivery, also configure `DEVPULSE_WEBHOOK_URL` and `DEVPULSE_WEBHOOK_SECRET` in GitHub Actions. |
@@ -263,3 +295,4 @@ For a CI walkthrough, trigger a simulation and watch the role handoff progress. 
 | Backend and DevOps | Added the FastAPI API, GitHub Actions integration, database seeds, Git operations, Compose services, and CI workflow. |
 | Dashboard integration | Joined the React dashboard and FastAPI stack, fixed Nginx port mapping, and verified the four CI jobs with both application tiers. |
 | Selective Git writes | Added explicit file selection, bearer-token entry, and real commit and push results in the Git drawer. |
+| v1.5.0 | Added bearer sessions, verified GitHub linking, role-aware workspace state, and a chat executor with optional provider tool calling. |

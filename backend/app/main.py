@@ -6,7 +6,7 @@ from sqlalchemy import text
 
 from .config import DATABASE_URL
 from .database import Base, make_engine, session_scope
-from .routers import deployments, docker_monitor, git_control, pipeline
+from .routers import ai_agent, auth, deployments, docker_monitor, git_control, pipeline, workspaces
 from .seed import seed
 from .services.github_service import GitHubService
 
@@ -26,9 +26,10 @@ def create_app(database_url=DATABASE_URL, github=None):
                 app.state.github.client.close()
             app.state.engine.dispose()
 
-    app = FastAPI(title="DevPulse API", version="1.0.0", lifespan=lifespan)
+    app = FastAPI(title="DevPulse API", version="1.5.0", lifespan=lifespan)
     app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
-    for router in (pipeline.router, deployments.router, git_control.router, docker_monitor.router):
+    for router in (pipeline.router, deployments.router, git_control.router, docker_monitor.router,
+                   auth.router, workspaces.router, ai_agent.router):
         app.include_router(router)
 
     @app.get("/api/health")
