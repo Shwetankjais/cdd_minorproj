@@ -1,7 +1,7 @@
 import os
 
 import httpx
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request, Response
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
@@ -36,7 +36,9 @@ def readiness(db, github):
 
 
 @router.post("/login")
-def login(body: Login, db: Session = Depends(get_db)):
+def login(body: Login, request: Request, response: Response, db: Session = Depends(get_db)):
+    if body.browser_repo:
+        session_service.check_browser_origin(request)
     token = body.github_token.get_secret_value() if body.github_token else None
     github = session_service.github_connection(body.github_username, token)
     profile = {"email": body.email, "name": body.name, "role": body.role}
@@ -44,8 +46,15 @@ def login(body: Login, db: Session = Depends(get_db)):
         db, profile, github, workspace_service.default_workspace(body.role))
     services = readiness(db, github)
     session_service.remember_credential(session, token if github["verified"] else None)
-    return {"session_token": session_token, "token_type": "bearer", "services": services,
-            **session_service.session_payload(session)}
+    payload = {**session_service.session_payload(session), "services": services}
+    if body.browser_repo:
+        response.set_cookie(session_service.BROWSER_COOKIE, session_token, max_age=12 * 3600,
+                            path="/api", httponly=True, samesite="strict",
+                            secure=request.url.scheme == "https")
+        payload["user"] = {**profile, "githubConnected": github["connected"],
+                           "githubRepo": github.get("project") or body.browser_repo}
+        return payload
+    return {"session_token": session_token, "token_type": "bearer", **payload}
 
 
 @router.get("/session")
@@ -62,7 +71,9 @@ def connect(body: GitHubConnection, session: UserSession = Depends(session_servi
 
 
 @router.post("/logout")
-def logout(session: UserSession = Depends(session_service.require_session), db: Session = Depends(get_db)):
+def logout(response: Response, session: UserSession = Depends(session_service.require_session),
+           db: Session = Depends(get_db)):
     session_service.remember_credential(session)
     db.delete(session)
+    response.delete_cookie(session_service.BROWSER_COOKIE, path="/api")
     return {"logged_out": True}

@@ -60,7 +60,7 @@ Frontend versions reflect [the npm lockfile](frontend/package-lock.json). The ba
   OpenAI or Gemini <-- optional read-only tool selection --> Agent
 ```
 
-The Vite client defaults to `http://localhost:8000/api`. For a local Vite session, `VITE_API_URL` can override that URL. The Compose Nginx server also proxies `/api/` to FastAPI and serves the SPA on port 5173. The UI uses bundled demo responses when some requests fail. The API separately labels seeded, simulated, and GitHub run records using `source`.
+The Vite client defaults to `http://localhost:8000/api`. For a local Vite session, `VITE_API_URL` can override that URL. The integration Compose build sets `VITE_API_URL=/api`, so the SPA and API share the Nginx origin on port 5173. The UI uses bundled demo responses when some requests fail. The API separately labels seeded, simulated, and GitHub run records using `source`.
 
 The v1.5 backend adds a session gate for workspace and agent requests. The frontend integration uses a login and GitHub connection screen, a workspace launcher, sidebar view switching instead of one long dashboard, and a right-column agent panel. These UI changes are maintained on the frontend track.
 
@@ -254,7 +254,7 @@ Open [http://localhost:5173](http://localhost:5173/). Stop any Compose services 
 | `POST /api/git/commit-push` | Commit explicitly selected paths and attempt a push to the checked-out branch on `origin`. |
 | `POST /api/webhooks/github` | Receive signed GitHub events or CI verification notifications. |
 
-Send `Authorization: Bearer <session_token>` to the new session, workspace, and chat routes after login. Roles are `Developer`, `CI Team`, `QA Testing Team`, and `CD Release Team`. The email and name are self-declared profile fields. A public lookup can report GitHub connectivity without verifying an identity. The session bearer is stored as a hash. A verified PAT is held only in server process memory and must be re-linked after a restart. The existing drawer uses its separate Git write token.
+API clients send `Authorization: Bearer <session_token>` to the session, workspace, and chat routes after login. The committed browser client uses a same-origin, HttpOnly session cookie through Nginx. Its initial demo profile is local UI state. Sign out and sign in to establish a backend session before testing the workspace and chat requests. Roles are `Developer`, `CI Team`, `QA Testing Team`, and `CD Release Team`. The email and name are self-declared profile fields. A public lookup can report GitHub connectivity without verifying an identity. The session bearer is stored as a hash. A verified PAT is held only in server process memory and must be re-linked after a restart. The existing drawer uses its separate Git write token.
 
 Workspaces are resolved on the API host or inside the container. In Compose, the repository is at `/workspace/project` and cloned repositories go under `/workspace/project/workspace`. The `devops-lab` and `shop-api` entries are templates. Per-session workspace selection does not create separate copies of a shared Git checkout.
 

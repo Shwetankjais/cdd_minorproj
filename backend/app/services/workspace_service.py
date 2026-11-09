@@ -86,7 +86,7 @@ def open_workspace(path, role, name=None):
         with git_service.WRITE_LOCK:
             if not (root / ".git").exists():
                 git_service.run_git(root, "init", "-b", "main")
-    return describe(root, role, name)
+    return describe(root, role, name or ("cdd_minor" if root == git_service.PROJECT_ROOT else None))
 
 
 def clone_workspace(repo_url, branch, role):

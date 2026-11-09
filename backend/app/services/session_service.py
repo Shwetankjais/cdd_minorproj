@@ -3,9 +3,10 @@ import secrets
 from collections import OrderedDict
 from datetime import timedelta
 from threading import Lock
+from urllib.parse import urlsplit
 
 import httpx
-from fastapi import Depends, Header, HTTPException
+from fastapi import Depends, Header, HTTPException, Request
 from sqlalchemy.orm import Session
 
 from ..config import DEFAULT_PROJECT
@@ -60,8 +61,25 @@ def new_session(db, profile, github, workspace):
     return token, session
 
 
-def require_session(authorization: str = Header(default=""), db: Session = Depends(get_db)):
+BROWSER_COOKIE = "devpulse_session"
+
+
+def check_browser_origin(request):
+    origin = request.headers.get("origin")
+    fetch_site = request.headers.get("sec-fetch-site")
+    if fetch_site not in (None, "same-origin") or (origin and (
+        fetch_site != "same-origin" or urlsplit(origin).hostname != request.url.hostname
+    )):
+        raise HTTPException(403, "Use the dashboard origin for browser session requests.")
+
+
+def require_session(request: Request, authorization: str = Header(default=""), db: Session = Depends(get_db)):
     scheme, _, token = authorization.partition(" ")
+    if not authorization and request.cookies.get(BROWSER_COOKIE):
+        check_browser_origin(request)
+        token = request.cookies[BROWSER_COOKIE]
+        scheme = "bearer"
+        request.state.browser_session = True
     if scheme.lower() != "bearer" or not token or len(token) > 128:
         raise HTTPException(401, "A DevPulse session bearer token is required.")
     session = db.get(UserSession, token_digest(token))

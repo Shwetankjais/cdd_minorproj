@@ -349,3 +349,27 @@ def test_remote_workspace_fallback_and_agent_navigation(collaboration, monkeypat
     assert result["target_view"] == "workspaces"
     assert result["workspace"]["kind"] == "remote"
     assert client.get("/api/auth/session", headers=headers).json()["active_workspace"]["project"] == "team/example"
+
+
+def test_browser_contract_uses_same_origin_cookie(collaboration):
+    client, _ = collaboration
+    body = {"email": "browser@example.test", "name": "Browser User", "role": "CI Build Team",
+            "githubRepo": DEFAULT_PROJECT}
+    same_origin = {"Origin": "http://testserver", "Sec-Fetch-Site": "same-origin"}
+    cross_origin = {"Origin": "http://elsewhere.test", "Sec-Fetch-Site": "cross-site"}
+    assert client.post("/api/auth/login", json=body, headers=cross_origin).status_code == 403
+    login = client.post("/api/auth/login", json=body, headers=same_origin)
+    assert login.status_code == 200 and login.json()["user"]["role"] == "CI Team"
+    assert "HttpOnly" in login.headers["set-cookie"] and "SameSite=strict" in login.headers["set-cookie"]
+    assert "session_token" not in login.json()
+    assert isinstance(client.get("/api/workspaces").json(), list)
+    opened = client.post("/api/workspaces/open", json={"path": "~/Desktop/cdd_minor"}, headers=same_origin)
+    assert opened.status_code == 200 and opened.json()["name"] == "cdd_minor"
+    assert client.post("/api/agent/chat", json={"prompt": "/simulate"}, headers=cross_origin).status_code == 403
+    chat = client.post("/api/agent/chat", json={"prompt": "/simulate"}, headers=same_origin).json()
+    assert chat["response"] == chat["message"]
+    assert chat["action_triggered"] == "SIMULATE_PIPELINE"
+    assert chat["action"] == {"type": "NAVIGATE", "tab": "overview"}
+    assert client.get("/api/pipeline/live").json()["id"] == chat["run"]["id"]
+    assert client.post("/api/auth/logout", headers=same_origin).json()["logged_out"]
+    assert client.get("/api/auth/session").status_code == 401

@@ -16,13 +16,13 @@ from .session_service import linked_credential
 
 INTENTS = {
     "simulate": r"simulate\b|run (?:the )?pipeline\b",
-    "status": r"git status\b|changed files\b|what files changed\b",
+    "status": r"git status\b|changed files\b|what files changed\b|inspect git changes\b",
     "explain": r"why did (?:the )?(?:build|pipeline) fail\b|explain(?: error)?\b|diagnose\b",
     "docker": r"docker(?: status)?\b|containers\b",
     "handoff": r"who is working\b|handoff\b|progress\b",
 }
-TABS = {"dashboard": "dashboard", "charts": "dashboard", "pipelines": "pipelines",
-        "history": "history", "deployments": "deployments", "tests": "tests", "errors": "errors",
+TABS = {"dashboard": "dashboard", "charts": "analytics", "pipelines": "pipelines",
+        "analytics": "analytics", "runs": "history", "history": "history", "deployments": "deployments", "tests": "tests", "errors": "errors",
         "diagnostics": "errors", "projects": "projects", "workspaces": "workspaces"}
 FAILURES = {"failure", "timed_out", "startup_failure", "action_required"}
 
