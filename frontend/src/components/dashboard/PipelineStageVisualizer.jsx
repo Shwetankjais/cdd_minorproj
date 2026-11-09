@@ -1,5 +1,5 @@
 import React from 'react';
-import { Hammer, FlaskConical, Container, Rocket, Check, Loader2, Clock, Sparkles } from 'lucide-react';
+import { Hammer, FlaskConical, Container, Rocket, Check, Loader2 } from 'lucide-react';
 import { useThemeAndProject } from '../../context/ThemeAndProjectContext';
 import RoleHandoffProgressBar from './RoleHandoffProgressBar';
 
@@ -8,8 +8,6 @@ export default function PipelineStageVisualizer() {
     selectedRun,
     isSimulating,
     simPercent,
-    simStage,
-    startSimulation,
   } = useThemeAndProject();
 
   const stages = [
@@ -19,7 +17,7 @@ export default function PipelineStageVisualizer() {
     { id: 'deploy', name: 'Deploy', icon: Rocket, duration: '52s', team: 'CD Release Team', pctRange: [80, 100] },
   ];
 
-  const getStageStatus = (stage, index) => {
+  const getStageStatus = (stage) => {
     if (!isSimulating) {
       if (selectedRun.status === 'Failed at Build') {
         if (stage.id === 'build') return 'failed';
@@ -78,9 +76,9 @@ export default function PipelineStageVisualizer() {
 
       {/* 4 Connected Circular Stage Nodes */}
       <div className="py-4 px-2">
-        <div className="grid grid-cols-4 relative items-center">
-          {/* Continuous connecting track background */}
-          <div className="absolute left-[12.5%] right-[12.5%] top-1/2 -translate-y-6 h-1 bg-[#E2E8F0] dark:bg-[#2D3748] -z-0">
+        <div className="grid grid-cols-4 relative items-start">
+          {/* Continuous connecting track background centered on the circles */}
+          <div className="absolute left-[12.5%] right-[12.5%] top-7 sm:top-8 -translate-y-1/2 h-1 bg-[#E2E8F0] dark:bg-[#2D3748] z-0 pointer-events-none">
             {/* Dynamic progress bar line */}
             <div
               className="h-full bg-gradient-to-r from-emerald-500 via-[#D4AF37] to-[#0A1128] dark:to-[#F8FAFC] transition-all duration-300 rounded-full"
@@ -90,39 +88,54 @@ export default function PipelineStageVisualizer() {
             ></div>
           </div>
 
-          {stages.map((stage, idx) => {
-            const status = getStageStatus(stage, idx);
+          {stages.map((stage) => {
+            const status = getStageStatus(stage);
             const Icon = stage.icon;
 
             const isCompleted = status === 'completed';
             const isRunning = status === 'running';
             const isFailed = status === 'failed';
-            const isQueued = status === 'queued' || status === 'skipped';
 
             return (
-              <div key={stage.id} className="flex flex-col items-center z-10">
-                {/* Circular Node */}
+              <div key={stage.id} className="flex flex-col items-center relative z-10">
+                {/* Circular Node with solid opaque background masking to prevent line overlap */}
                 <div className="relative group">
                   <div
-                    className={`w-14 h-14 sm:w-16 sm:h-16 rounded-full flex items-center justify-center transition-all duration-300 ${
+                    className={`w-14 h-14 sm:w-16 sm:h-16 rounded-full flex items-center justify-center transition-all duration-300 relative overflow-hidden bg-white dark:bg-[#1C1E24] ${
                       isCompleted
-                        ? 'bg-emerald-500/10 dark:bg-emerald-950/40 border-2 border-emerald-500 text-emerald-600 dark:text-emerald-400 shadow-lg shadow-emerald-500/20'
+                        ? 'border-2 border-emerald-500 text-emerald-600 dark:text-emerald-400 shadow-lg shadow-emerald-500/20'
                         : isRunning
-                        ? 'bg-[#F59E0B]/10 dark:bg-[#F59E0B]/20 border-2 border-[#F59E0B] text-[#F59E0B] ring-4 ring-[#F59E0B]/20 animate-pulse'
+                        ? 'border-2 border-[#F59E0B] text-[#F59E0B] ring-4 ring-[#F59E0B]/20 animate-pulse'
                         : isFailed
-                        ? 'bg-[#E63946]/10 dark:bg-[#E63946]/20 border-2 border-[#E63946] text-[#E63946] shadow-lg shadow-[#E63946]/20'
-                        : 'bg-[#FAF8F5] dark:bg-[#23272F] border-2 border-[#E2E8F0] dark:border-[#323742] text-[#94A3B8]'
+                        ? 'border-2 border-[#E63946] text-[#E63946] shadow-lg shadow-[#E63946]/20'
+                        : 'border-2 border-[#E2E8F0] dark:border-[#323742] text-[#94A3B8]'
                     }`}
                   >
-                    {isRunning ? (
-                      <Loader2 className="w-6 h-6 animate-spin" />
-                    ) : (
-                      <Icon className="w-6 h-6 stroke-[2.2]" />
-                    )}
+                    {/* Inner status tint layer over solid card background */}
+                    <div
+                      className={`absolute inset-0 rounded-full pointer-events-none ${
+                        isCompleted
+                          ? 'bg-emerald-500/10 dark:bg-emerald-950/40'
+                          : isRunning
+                          ? 'bg-[#F59E0B]/10 dark:bg-[#F59E0B]/20'
+                          : isFailed
+                          ? 'bg-[#E63946]/10 dark:bg-[#E63946]/20'
+                          : 'bg-[#FAF8F5] dark:bg-[#23272F]'
+                      }`}
+                    />
+
+                    {/* Icon centered above the opaque background and tint */}
+                    <div className="relative z-10 flex items-center justify-center">
+                      {isRunning ? (
+                        <Loader2 className="w-6 h-6 animate-spin" />
+                      ) : (
+                        <Icon className="w-6 h-6 stroke-[2.2]" />
+                      )}
+                    </div>
                   </div>
 
                   {/* Little status badge overlay */}
-                  <div className="absolute -top-1 -right-1">
+                  <div className="absolute -top-1 -right-1 z-20">
                     {isCompleted && (
                       <div className="w-5 h-5 rounded-full bg-emerald-500 text-white flex items-center justify-center text-[10px] shadow">
                         <Check className="w-3 h-3 stroke-[3]" />
