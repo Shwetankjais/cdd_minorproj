@@ -143,3 +143,19 @@ def test_docker_fallback(client, monkeypatch):
     cards = client.get("/api/docker/status").json()
     assert len(cards) == 3
     assert all(card["id"] == card["name"] and card["ports"] == "—" for card in cards)
+
+
+def test_demo_git_token_accepts_only_local_browser_origin(client, monkeypatch):
+    from app.routers import git_control
+
+    monkeypatch.setattr(git_control, "GIT_WRITE_TOKEN", git_control.VIVA_GIT_WRITE_TOKEN)
+    monkeypatch.setattr(git_control.git_service, "commit_push", lambda *args: {"pushed": True})
+    headers = {"Authorization": f"Bearer {git_control.VIVA_GIT_WRITE_TOKEN}"}
+    body = {"files": ["README.md"], "message": "Update docs"}
+    for endpoint, payload in (("/commit-push", body), ("/open-or-clone", {"repo_url": "https://github.com/example/repo"})):
+        assert client.post(f"/api/git{endpoint}", json=payload, headers={
+            **headers, "Origin": "https://example.com",
+        }).status_code == 403
+    assert client.post("/api/git/commit-push", json=body, headers={
+        **headers, "Origin": "http://localhost:5173",
+    }).json() == {"pushed": True}

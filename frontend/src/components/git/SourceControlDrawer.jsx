@@ -11,7 +11,7 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { useThemeAndProject } from '../../context/ThemeAndProjectContext';
-import api from '../../services/api';
+import api, { DEFAULT_GIT_WRITE_TOKEN } from '../../services/api';
 
 export default function SourceControlDrawer() {
   const { isGitDrawerOpen, setIsGitDrawerOpen } = useThemeAndProject();
@@ -19,7 +19,7 @@ export default function SourceControlDrawer() {
   const [repoUrl, setRepoUrl] = useState('');
   const [localPath, setLocalPath] = useState('');
   const [repository, setRepository] = useState(null);
-  const [token, setToken] = useState('');
+  const [token, setToken] = useState(DEFAULT_GIT_WRITE_TOKEN);
   const [commitMessage, setCommitMessage] = useState('');
   const [selected, setSelected] = useState([]);
   const [loadingFiles, setLoadingFiles] = useState(false);
@@ -29,6 +29,8 @@ export default function SourceControlDrawer() {
   const files = repository?.files ?? [];
   const branch = repository?.branch;
   const busy = loadingFiles || isSubmitting;
+  const defaultMessage = selected.length === 1 && selected[0] === 'README.md'
+    ? 'docs: update DevPulse README' : 'chore: update selected files';
 
   async function loadGitStatus(path) {
     setLoadingFiles(true);
@@ -52,14 +54,14 @@ export default function SourceControlDrawer() {
 
   async function handleCommitAndPush(event) {
     event.preventDefault();
-    if (busy || !selected.length || !branch || !commitMessage.trim() || !token.trim()) return;
+    if (busy || !selected.length || !branch || !token.trim()) return;
     setIsSubmitting(true);
     setCommitResult(null);
     try {
       const result = await api.commitAndPush({
         path: repository.path,
         files: selected,
-        message: commitMessage.trim(),
+        message: commitMessage.trim() || defaultMessage,
         branch,
         token: token.trim(),
       });
@@ -187,17 +189,20 @@ export default function SourceControlDrawer() {
               </div>
             </div>
             {statusError && <p role="alert" className="text-[#E63946]">{statusError}</p>}
-            <label className="block">
-              Git write token
-              <input
-                type="password"
-                autoComplete="off"
-                value={token}
-                onChange={(event) => setToken(event.target.value)}
-                placeholder="GIT_WRITE_TOKEN"
-                className="mt-1 w-full px-3 py-2 rounded-lg bg-[#FAF8F5] dark:bg-[#0D1B2A] border border-[#E2E8F0] dark:border-[#323742]"
-              />
-            </label>
+            <details>
+              <summary className="cursor-pointer">Advanced Auth</summary>
+              <label className="mt-2 block">
+                Git write token
+                <input
+                  type="password"
+                  autoComplete="off"
+                  value={token}
+                  onChange={(event) => setToken(event.target.value)}
+                  placeholder="GIT_WRITE_TOKEN"
+                  className="mt-1 w-full px-3 py-2 rounded-lg bg-[#FAF8F5] dark:bg-[#0D1B2A] border border-[#E2E8F0] dark:border-[#323742]"
+                />
+              </label>
+            </details>
           </div>
 
           {/* Changed Files List */}
@@ -282,8 +287,7 @@ export default function SourceControlDrawer() {
               </label>
               <button
                 type="button"
-                onClick={() => setCommitMessage(selected.length === 1 && selected[0] === 'README.md'
-                  ? 'docs: update DevPulse README' : 'chore: update selected files')}
+                onClick={() => setCommitMessage(defaultMessage)}
                 className="text-[11px] font-semibold text-[#0A1128] dark:text-[#D4AF37] hover:underline flex items-center gap-1"
               >
                 <Sparkles className="w-3 h-3" /> Auto-Generate
@@ -294,7 +298,7 @@ export default function SourceControlDrawer() {
               rows={3}
               value={commitMessage}
               onChange={(e) => setCommitMessage(e.target.value)}
-              placeholder="Write a clear conventional commit message..."
+              placeholder={defaultMessage}
               className="w-full p-2.5 rounded-xl bg-[#FAF8F5] dark:bg-[#0D1B2A] border border-[#E2E8F0] dark:border-[#323742] text-[#0F172A] dark:text-[#F8FAFC] font-mono text-xs focus:ring-2 focus:ring-[#D4AF37]/20 focus:border-[#D4AF37] outline-none"
             ></textarea>
 
@@ -323,7 +327,7 @@ export default function SourceControlDrawer() {
             {/* 1-Click Commit & Push Button (Primary Action - Crimson Red) */}
             <button
               type="submit"
-              disabled={busy || !selected.length || !branch || !token.trim() || !commitMessage.trim()}
+              disabled={busy || !selected.length || !branch || !token.trim()}
               className="w-full py-2.5 px-4 rounded-xl font-bold text-white bg-gradient-to-r from-[#E63946] to-[#DC2626] hover:from-[#DC2626] hover:to-[#B91C1C] shadow-md shadow-[#E63946]/20 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isSubmitting ? (

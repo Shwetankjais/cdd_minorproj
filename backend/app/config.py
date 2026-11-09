@@ -12,4 +12,5 @@ WORKSPACE = Path(os.getenv("DEVPULSE_WORKSPACE", str(PROJECT_ROOT / "workspace")
 DATABASE_URL = os.getenv("DATABASE_URL") or f"sqlite:///{BACKEND_DIR / 'devpulse.db'}"
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
 WEBHOOK_SECRET = os.getenv("GITHUB_WEBHOOK_SECRET")
-GIT_WRITE_TOKEN = os.getenv("GIT_WRITE_TOKEN")
+VIVA_GIT_WRITE_TOKEN = "devpulse-viva-token"
+GIT_WRITE_TOKEN = os.getenv("GIT_WRITE_TOKEN", VIVA_GIT_WRITE_TOKEN)

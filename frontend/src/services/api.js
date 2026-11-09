@@ -69,12 +69,14 @@ async function fetchWithFallback(endpoint, options = {}, fallbackData) {
   }
 }
 
-async function gitRequest(endpoint, { body, token } = {}) {
+export const DEFAULT_GIT_WRITE_TOKEN = 'devpulse-viva-token';
+
+async function gitRequest(endpoint, { body, token = DEFAULT_GIT_WRITE_TOKEN } = {}) {
   const response = await fetch(`${BASE_URL}${endpoint}`, {
     method: body ? 'POST' : 'GET',
     headers: {
       ...(body && { 'Content-Type': 'application/json' }),
-      ...(token && { Authorization: `Bearer ${token}` }),
+      ...(body && token && { Authorization: `Bearer ${token}` }),
     },
     ...(body && { body: JSON.stringify(body) }),
   });

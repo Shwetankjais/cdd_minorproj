@@ -27,6 +27,12 @@ services:
       DATABASE_URL: postgresql+psycopg://devpulse:${POSTGRES_PASSWORD:-devpulse_local}@db:5432/devpulse
       DEVPULSE_REPO: /workspace/project
       DEVPULSE_WORKSPACE: /workspace/project/workspace
+      GIT_WRITE_TOKEN: ${GIT_WRITE_TOKEN-devpulse-viva-token}
+      GIT_CONFIG_COUNT: "2"
+      GIT_CONFIG_KEY_0: credential.helper
+      GIT_CONFIG_VALUE_0: store --file=/workspace/project/backend/.git-credentials
+      GIT_CONFIG_KEY_1: credential.useHttpPath
+      GIT_CONFIG_VALUE_1: "true"
     volumes:
       - .:/workspace/project
     depends_on:
