@@ -479,6 +479,210 @@ export const api = {
 
     return mockDockerContainers;
   },
+
+  /**
+   * POST /api/auth/login
+   */
+  async login({ email = 'shwetank@devpulse.io', name = 'Shwetank Jaiswal', role = 'Developer', githubRepo = 'Shwetankjais/cdd_minorproj' }) {
+    const fallback = {
+      token: 'devpulse-session-' + Date.now(),
+      user: {
+        email,
+        name,
+        role,
+        githubConnected: true,
+        githubRepo,
+        avatar: 'DP',
+        loginTime: new Date().toISOString(),
+      },
+    };
+    const res = await fetchWithFallback(
+      '/auth/login',
+      {
+        method: 'POST',
+        body: JSON.stringify({ email, name, role, githubRepo }),
+      },
+      fallback
+    );
+    return res;
+  },
+
+  /**
+   * POST /api/auth/logout
+   */
+  async logout() {
+    return await fetchWithFallback('/auth/logout', { method: 'POST' }, { success: true });
+  },
+
+  /**
+   * GET /api/workspaces
+   */
+  async getWorkspaces() {
+    const fallback = [
+      {
+        id: 'cdd_minor',
+        name: 'cdd_minor',
+        path: '~/Desktop/cdd_minor',
+        branch: 'main',
+        passRate: 100,
+        role: 'Developer / CI Team',
+        status: 'Healthy',
+        isCurrent: true,
+        lastSynced: '1 min ago',
+      },
+      {
+        id: 'devops-lab',
+        name: 'devops-lab',
+        path: '~/workspace/devops-lab',
+        branch: 'integration/devops',
+        passRate: 83,
+        role: 'CI Build Team',
+        status: 'Unstable',
+        isCurrent: false,
+        lastSynced: '14 min ago',
+      },
+      {
+        id: 'shop-api',
+        name: 'shop-api',
+        path: '~/workspace/shop-api',
+        branch: 'release/v2.1',
+        passRate: 67,
+        role: 'QA Testing Team',
+        status: 'Failing',
+        isCurrent: false,
+        lastSynced: '2h ago',
+      },
+      {
+        id: 'campus-portal',
+        name: 'campus-portal',
+        path: '~/workspace/campus-portal',
+        branch: 'staging',
+        passRate: 83,
+        role: 'CD Release Team',
+        status: 'Unstable',
+        isCurrent: false,
+        lastSynced: '1d ago',
+      },
+    ];
+    return await fetchWithFallback('/workspaces', { method: 'GET' }, fallback);
+  },
+
+  /**
+   * POST /api/workspaces/open
+   */
+  async openWorkspace(path) {
+    const cleanPath = path || '~/Desktop/cdd_minor';
+    const folderName = cleanPath.split('/').filter(Boolean).pop() || 'workspace';
+    return await fetchWithFallback(
+      '/workspaces/open',
+      {
+        method: 'POST',
+        body: JSON.stringify({ path: cleanPath }),
+      },
+      {
+        success: true,
+        id: folderName,
+        name: folderName,
+        path: cleanPath,
+        branch: 'main',
+        passRate: 100,
+        role: 'Developer',
+        status: 'Healthy',
+        message: `Workspace "${cleanPath}" opened successfully.`,
+      }
+    );
+  },
+
+  /**
+   * POST /api/workspaces/clone
+   */
+  async cloneWorkspace({ repo_url, branch = 'main', path }) {
+    const repoName = repo_url ? repo_url.split('/').pop().replace('.git', '') : 'cdd_minorproj';
+    const targetPath = path || `~/workspace/${repoName}`;
+    return await fetchWithFallback(
+      '/workspaces/clone',
+      {
+        method: 'POST',
+        body: JSON.stringify({ repo_url, branch, path: targetPath }),
+      },
+      {
+        success: true,
+        id: repoName,
+        name: repoName,
+        path: targetPath,
+        branch,
+        passRate: 100,
+        role: 'CI Build Team',
+        status: 'Healthy',
+        message: `Repository ${repo_url || 'cdd_minorproj'} cloned on branch ${branch}.`,
+      }
+    );
+  },
+
+  /**
+   * POST /api/agent/chat
+   * Live AI Copilot action executor
+   */
+  async sendAgentMessage(prompt, context = {}) {
+    const backendRes = await fetchWithFallback(
+      '/agent/chat',
+      {
+        method: 'POST',
+        body: JSON.stringify({ prompt, context }),
+      },
+      null
+    );
+
+    if (backendRes && backendRes.response) {
+      return backendRes;
+    }
+
+    const lower = (prompt || '').toLowerCase();
+    let action = null;
+    let reply = '';
+    let actionBadge = '';
+
+    if (lower.includes('simulate') || lower.includes('pipeline') || lower.includes('live run')) {
+      action = { type: 'SIMULATE_PIPELINE' };
+      actionBadge = 'Live Simulation Triggered';
+      reply = `I have started a live pipeline simulation across CI, QA, and CD teams. Watch the 4 circular nodes progress from 0% to 100%, and notice the pre-notification alert banner when it hits the 80% mark for CD release handover.`;
+    } else if (lower.includes('git') || lower.includes('modified') || lower.includes('commit') || lower.includes('push') || lower.includes('diff')) {
+      action = { type: 'NAVIGATE', tab: 'source-control' };
+      actionBadge = 'Source Control Opened';
+      reply = `Switched to the 1-Click Git Source Control cockpit. You can review modified files (e.g. README.md), check git status, auto-generate conventional commit messages, and push directly to GitHub.`;
+    } else if (lower.includes('docker') || lower.includes('container') || lower.includes('healthy') || lower.includes('service')) {
+      action = { type: 'NAVIGATE', tab: 'deployments' };
+      actionBadge = 'Docker Telemetry Active';
+      reply = `All 3 stack containers (devpulse-frontend:5173, devpulse-backend:8000, and devpulse-db:5432) are verified and 100% healthy. I have navigated to the Deployments & Docker telemetry view for you.`;
+    } else if (lower.includes('fail') || lower.includes('error') || lower.includes('root cause') || lower.includes('why') || lower.includes('diagnostic')) {
+      action = { type: 'NAVIGATE', tab: 'runs' };
+      actionBadge = 'Diagnostics Inspected';
+      reply = `Analyzing latest build failure in run #1286: Tests failed during the QA Pytest stage in the authentication module (AssertionError: expected status 200 but got 401). Suggested fix: Verify the JWT secret token in backend/.env.`;
+    } else if (lower.includes('handoff') || lower.includes('80%') || lower.includes('team') || lower.includes('role')) {
+      action = { type: 'NAVIGATE', tab: 'overview' };
+      actionBadge = 'Handoff Alert Checked';
+      reply = `The cross-team role handoff lifecycle is segmented into Dev (0-25%), CI Build (25-50%), QA Testing (50-80%), and CD Release (80-100%). At 75-80% progress, a pulsing Heads-Up banner gives downstream teams early warning before the deployment stage starts.`;
+    } else if (lower.includes('chart') || lower.includes('analytics') || lower.includes('donut') || lower.includes('metric')) {
+      action = { type: 'NAVIGATE', tab: 'analytics' };
+      actionBadge = 'Analytics Opened';
+      reply = `Opened the Build Analytics & Charts view. Current build pass rate is 71.4% with an average execution duration of 2m 46s across the last 14 runs.`;
+    } else if (lower.includes('workspace') || lower.includes('folder') || lower.includes('repo') || lower.includes('clone')) {
+      action = { type: 'NAVIGATE', tab: 'workspaces' };
+      actionBadge = 'Workspace Hub Opened';
+      reply = `Switched to the Collaborative Workspace & Repo Hub. You can open a local directory, clone a GitHub repo, or switch between registered team repositories.`;
+    } else {
+      reply = `I am your DevPulse Pipeline Copilot. I can run live simulations, inspect docker containers, explain build failures in plain English, check git changes, or navigate between your dashboard views. Try asking me to "simulate live pipeline" or "inspect git changes"!`;
+    }
+
+    return {
+      id: 'msg-' + Date.now(),
+      sender: 'copilot',
+      text: reply,
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      action,
+      actionBadge,
+    };
+  },
 };
 
 export default api;

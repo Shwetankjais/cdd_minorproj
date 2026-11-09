@@ -12,6 +12,11 @@ import {
   Clock,
   Sparkles,
   Menu,
+  Github,
+  LogOut,
+  User,
+  ShieldCheck,
+  AlertCircle,
 } from 'lucide-react';
 import { useThemeAndProject } from '../../context/ThemeAndProjectContext';
 
@@ -30,13 +35,20 @@ export default function Header() {
     resetSimulation,
     notifications,
     setNotifications,
+    user,
+    logout,
+    toggleGithubConnection,
+    isAiCopilotOpen,
+    toggleAiCopilot,
   } = useThemeAndProject();
 
   const [projectDropdownOpen, setProjectDropdownOpen] = useState(false);
   const [notifDropdownOpen, setNotifDropdownOpen] = useState(false);
+  const [userDropdownOpen, setUserDropdownOpen] = useState(false);
 
   const projectRef = useRef(null);
   const notifRef = useRef(null);
+  const userRef = useRef(null);
 
   // Close dropdowns on click outside
   useEffect(() => {
@@ -46,6 +58,9 @@ export default function Header() {
       }
       if (notifRef.current && !notifRef.current.contains(e.target)) {
         setNotifDropdownOpen(false);
+      }
+      if (userRef.current && !userRef.current.contains(e.target)) {
+        setUserDropdownOpen(false);
       }
     }
     document.addEventListener('mousedown', handleClickOutside);
@@ -82,6 +97,16 @@ export default function Header() {
                   <span className="w-1.5 h-1.5 rounded-full bg-[#F59E0B]"></span>
                   Simulating Live ({simPercent}%)
                 </span>
+              )}
+              {user?.githubConnected === false && (
+                <button
+                  onClick={toggleGithubConnection}
+                  className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#E63946]/10 text-[#E63946] border border-[#E63946]/30 hover:bg-[#E63946]/20 transition-colors"
+                  title="Click to reconnect GitHub"
+                >
+                  <AlertCircle className="w-3 h-3" />
+                  GitHub Disconnected
+                </button>
               )}
             </div>
             <p className="text-xs md:text-sm text-[#64748B] dark:text-[#94A3B8] mt-0.5">
@@ -123,6 +148,22 @@ export default function Header() {
             <span className="w-5 h-5 rounded-full bg-[#D4AF37]/15 text-[#0A1128] dark:text-[#D4AF37] font-bold text-[10px] flex items-center justify-center border border-[#D4AF37]/30">
               5
             </span>
+          </button>
+
+          {/* AI Copilot Toggle Button (Screenshot 3 integration) */}
+          <button
+            onClick={toggleAiCopilot}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all shadow-sm ${
+              isAiCopilotOpen
+                ? 'bg-[#1C1E24] text-[#D4AF37] border-[#D4AF37] ring-1 ring-[#D4AF37]'
+                : 'bg-white dark:bg-[#1C1E24] border-[#E2E8F0] dark:border-[#323742] hover:border-[#D4AF37]/60 text-[#0F172A] dark:text-[#F8FAFC]'
+            }`}
+            title="Toggle DevPulse Copilot"
+            aria-label="Toggle DevPulse Copilot"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-[#D4AF37]" />
+            <span className="hidden sm:inline">Copilot</span>
+            <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
           </button>
 
           {/* Project Selection Dropdown (#8) */}
@@ -243,9 +284,93 @@ export default function Header() {
             )}
           </button>
 
-          {/* User Profile Avatar */}
-          <div className="w-8 h-8 rounded-full bg-[#0A1128] text-[#D4AF37] font-bold text-xs flex items-center justify-center shadow-sm ring-2 ring-[#D4AF37]/40">
-            DP
+          {/* User Profile Avatar & Dropdown */}
+          <div className="relative" ref={userRef}>
+            <button
+              onClick={() => setUserDropdownOpen((prev) => !prev)}
+              className="w-8 h-8 rounded-full bg-[#0A1128] text-[#D4AF37] font-bold text-xs flex items-center justify-center shadow-sm ring-2 ring-[#D4AF37]/40 hover:ring-[#D4AF37] transition-all cursor-pointer"
+              title={`${user?.name || 'Developer'} (${user?.role || 'Developer'})`}
+              aria-label="User profile menu"
+            >
+              {user?.name
+                ? user.name
+                    .split(' ')
+                    .map((n) => n[0])
+                    .join('')
+                    .slice(0, 2)
+                    .toUpperCase()
+                : 'DP'}
+            </button>
+
+            {userDropdownOpen && (
+              <div className="absolute right-0 mt-2 w-72 bg-white dark:bg-[#23272F] rounded-xl shadow-xl border border-[#E2E8F0] dark:border-[#323742] p-3 z-50">
+                <div className="flex items-center gap-3 pb-3 border-b border-[#E2E8F0] dark:border-[#323742]">
+                  <div className="w-10 h-10 rounded-full bg-[#0A1128] text-[#D4AF37] font-bold text-sm flex items-center justify-center ring-2 ring-[#D4AF37]/40">
+                    {user?.name
+                      ? user.name
+                          .split(' ')
+                          .map((n) => n[0])
+                          .join('')
+                          .slice(0, 2)
+                          .toUpperCase()
+                      : 'DP'}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="font-bold text-sm text-[#0F172A] dark:text-[#F8FAFC] truncate">
+                      {user?.name || 'Shwetank Jaiswal'}
+                    </p>
+                    <p className="text-xs text-[#64748B] dark:text-[#94A3B8] truncate">
+                      {user?.email || 'shwetank@devpulse.io'}
+                    </p>
+                    <span className="inline-block mt-1 text-[10px] px-2 py-0.5 rounded-full bg-[#D4AF37]/15 text-[#0A1128] dark:text-[#D4AF37] font-semibold border border-[#D4AF37]/30">
+                      {user?.role || 'Developer'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* GitHub Connection Info */}
+                <div className="py-2.5 space-y-2 border-b border-[#E2E8F0] dark:border-[#323742]">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-[#64748B] dark:text-[#94A3B8] flex items-center gap-1.5">
+                      <Github className="w-3.5 h-3.5 text-[#0F172A] dark:text-[#F8FAFC]" />
+                      GitHub Repo:
+                    </span>
+                    <span
+                      className={`text-[10px] px-1.5 py-0.5 rounded font-mono ${
+                        user?.githubConnected
+                          ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                          : 'bg-[#E63946]/10 text-[#E63946]'
+                      }`}
+                    >
+                      {user?.githubConnected ? 'Connected' : 'Disconnected'}
+                    </span>
+                  </div>
+                  <p className="text-[11px] font-mono text-[#0F172A] dark:text-[#F8FAFC] truncate bg-[#FAF8F5] dark:bg-[#1C1E24] p-1.5 rounded border border-[#E2E8F0] dark:border-[#323742]">
+                    {user?.githubRepo || 'Shwetankjais/cdd_minorproj'}
+                  </p>
+                  <button
+                    onClick={toggleGithubConnection}
+                    className="w-full text-center text-[11px] text-[#D4AF37] hover:underline font-medium"
+                  >
+                    {user?.githubConnected ? 'Simulate Disconnect' : 'Reconnect to GitHub'}
+                  </button>
+                </div>
+
+                {/* Logout Action */}
+                <div className="pt-2">
+                  <button
+                    onClick={() => {
+                      setUserDropdownOpen(false);
+                      logout();
+                    }}
+                    className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold text-[#E63946] hover:bg-[#E63946]/10 border border-[#E63946]/20 transition-colors"
+                  >
+                    <LogOut className="w-3.5 h-3.5" />
+                    <span>Switch User / Logout</span>
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

@@ -35,7 +35,127 @@ export function ThemeAndProjectProvider({ children }) {
     setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
   }, []);
 
-  // 2. Responsive Mobile / Narrow Sidebar State (Requirement #3)
+  // 2. Authentication & User Session State (Upgrade 1)
+  const DEFAULT_USER = {
+    name: 'Shwetank Jaiswal',
+    email: 'shwetank@devpulse.io',
+    role: 'Developer',
+    githubConnected: true,
+    githubRepo: 'Shwetankjais/cdd_minorproj',
+    avatar: 'DP',
+  };
+
+  const [user, setUser] = useState(() => {
+    try {
+      if (localStorage.getItem('devpulse_logged_out') === 'true') {
+        return null;
+      }
+      const saved = localStorage.getItem('devpulse_user');
+      if (saved) return JSON.parse(saved);
+      return DEFAULT_USER;
+    } catch {
+      return DEFAULT_USER;
+    }
+  });
+
+  const isAuthenticated = Boolean(user);
+
+  const login = useCallback(async ({ email, name, role, githubRepo }) => {
+    try {
+      const res = await api.login({ email, name, role, githubRepo });
+      const loggedInUser = res?.user || {
+        email: email || 'shwetank@devpulse.io',
+        name: name || 'Shwetank Jaiswal',
+        role: role || 'Developer',
+        githubConnected: true,
+        githubRepo: githubRepo || 'Shwetankjais/cdd_minorproj',
+        avatar: 'DP',
+      };
+      setUser(loggedInUser);
+      localStorage.setItem('devpulse_user', JSON.stringify(loggedInUser));
+      localStorage.removeItem('devpulse_logged_out');
+      return loggedInUser;
+    } catch {
+      const fallbackUser = {
+        email: email || 'shwetank@devpulse.io',
+        name: name || 'Shwetank Jaiswal',
+        role: role || 'Developer',
+        githubConnected: true,
+        githubRepo: githubRepo || 'Shwetankjais/cdd_minorproj',
+        avatar: 'DP',
+      };
+      setUser(fallbackUser);
+      localStorage.setItem('devpulse_user', JSON.stringify(fallbackUser));
+      localStorage.removeItem('devpulse_logged_out');
+      return fallbackUser;
+    }
+  }, []);
+
+  const logout = useCallback(async () => {
+    try {
+      await api.logout();
+    } catch {
+      // offline fallback
+    }
+    setUser(null);
+    localStorage.removeItem('devpulse_user');
+    localStorage.setItem('devpulse_logged_out', 'true');
+  }, []);
+
+  const toggleGithubConnection = useCallback(() => {
+    setUser((prev) => {
+      if (!prev) return prev;
+      const updated = { ...prev, githubConnected: !prev.githubConnected };
+      localStorage.setItem('devpulse_user', JSON.stringify(updated));
+      return updated;
+    });
+  }, []);
+
+  // 3. Collaborative Workspaces State (Upgrade 2)
+  const [workspaces, setWorkspaces] = useState([]);
+  const [activeWorkspace, setActiveWorkspace] = useState(null);
+
+  useEffect(() => {
+    api.getWorkspaces().then((list) => {
+      if (Array.isArray(list) && list.length > 0) {
+        setWorkspaces(list);
+        setActiveWorkspace(list[0]);
+      }
+    });
+  }, []);
+
+  const openWorkspace = useCallback(async (path) => {
+    const res = await api.openWorkspace(path);
+    if (res) {
+      setWorkspaces((prev) => {
+        const existing = prev.find((w) => w.path === res.path || w.id === res.id);
+        if (existing) return prev;
+        return [res, ...prev];
+      });
+      setActiveWorkspace(res);
+    }
+    return res;
+  }, []);
+
+  const cloneWorkspace = useCallback(async (params) => {
+    const res = await api.cloneWorkspace(params);
+    if (res) {
+      setWorkspaces((prev) => [res, ...prev]);
+      setActiveWorkspace(res);
+    }
+    return res;
+  }, []);
+
+  // 4. View Switching State without long vertical scrolling (Upgrade 3)
+  const [activeTab, setActiveTab] = useState('overview');
+
+  // 5. Right-Column AI Agent Copilot State (Upgrade 4)
+  const [isAiCopilotOpen, setIsAiCopilotOpen] = useState(false);
+  const toggleAiCopilot = useCallback(() => setIsAiCopilotOpen((prev) => !prev), []);
+  const closeAiCopilot = useCallback(() => setIsAiCopilotOpen(false), []);
+  const openAiCopilot = useCallback(() => setIsAiCopilotOpen(true), []);
+
+  // 6. Responsive Mobile / Narrow Sidebar State
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const toggleSidebar = useCallback(() => {
     setIsSidebarOpen((prev) => !prev);
@@ -44,7 +164,7 @@ export function ThemeAndProjectProvider({ children }) {
     setIsSidebarOpen(false);
   }, []);
 
-  // 3. Project Selection State
+  // 7. Project Selection State
   const [projects, setProjects] = useState(mockProjects);
   const [activeProject, setActiveProject] = useState(mockProjects[0]);
 
@@ -59,7 +179,7 @@ export function ThemeAndProjectProvider({ children }) {
     });
   }, []);
 
-  // 4. Live Pipeline Summary & KPI Statistics State
+  // 8. Live Pipeline Summary & KPI Statistics State
   const [summaryData, setSummaryData] = useState(mockSummary);
 
   const fetchSummary = useCallback(async (projectId) => {
@@ -77,7 +197,7 @@ export function ThemeAndProjectProvider({ children }) {
     }
   }, [activeProject, fetchSummary]);
 
-  // 5. Live Pipeline Runs State
+  // 9. Live Pipeline Runs State
   const [runs, setRuns] = useState(mockPipelineRuns);
   const [selectedRun, setSelectedRun] = useState(mockPipelineRuns[0]);
   const [runsLoading, setRunsLoading] = useState(false);
@@ -88,7 +208,6 @@ export function ThemeAndProjectProvider({ children }) {
       const data = await api.getPipelineRuns({ project: projectId, status, search });
       if (Array.isArray(data) && data.length > 0) {
         setRuns(data);
-        // Default selectedRun to the first run if none selected or if project switched
         setSelectedRun((prev) => {
           const match = data.find((r) => r.id === prev?.id || r.rawId === prev?.rawId);
           return match || data[0];
@@ -128,13 +247,13 @@ export function ThemeAndProjectProvider({ children }) {
     [activeProject]
   );
 
-  // 6. Source Control / Git Drawer state
+  // 10. Source Control / Git Drawer state
   const [isGitDrawerOpen, setIsGitDrawerOpen] = useState(false);
   const toggleGitDrawer = useCallback(() => {
     setIsGitDrawerOpen((prev) => !prev);
   }, []);
 
-  // 7. Raw Logs Modal State
+  // 11. Raw Logs Modal State
   const [logsModal, setLogsModal] = useState({
     isOpen: false,
     title: '',
@@ -149,7 +268,7 @@ export function ThemeAndProjectProvider({ children }) {
     setLogsModal((prev) => ({ ...prev, isOpen: false }));
   }, []);
 
-  // 8. Live Simulation State connected to POST /api/pipeline/simulate & GET /api/pipeline/live
+  // 12. Live Simulation State connected to POST /api/pipeline/simulate & GET /api/pipeline/live
   const [isSimulating, setIsSimulating] = useState(false);
   const [simPercent, setSimPercent] = useState(100);
   const [simStage, setSimStage] = useState('deploy');
@@ -178,90 +297,160 @@ export function ThemeAndProjectProvider({ children }) {
   const getRoleTeamForPercent = useCallback((p) => {
     if (p < 25) return { role: 'Dev Team', task: 'Source Push & Validation', range: '0–25%' };
     if (p < 50) return { role: 'CI Team', task: 'Build & Compilation', range: '25–50%' };
-    if (p < 80) return { role: 'QA Testing Team', task: 'Pytest & Vitest Suites', range: '50–80%' };
-    return { role: 'CD Release Team', task: 'Docker & Production Rollout', range: '80–100%' };
+    if (p < 80) return { role: 'QA Testing Team', task: 'Automated Vitest & Pytest', range: '50–80%' };
+    return { role: 'CD Release Team', task: 'Docker & Cluster Deployment', range: '80–100%' };
   }, []);
 
-  // Trigger live simulation on backend and poll /api/pipeline/live
   const startSimulation = useCallback(async () => {
-    if (simulationPollRef.current) clearInterval(simulationPollRef.current);
-
     setIsSimulating(true);
-    setSimPercent(0);
+    setSimPercent(5);
     setSimStage('build');
     setSimAlert({
       level: 'info',
-      message: `Triggering live pipeline simulation on ${activeProject?.displayName || 'project'}.`,
       team: 'Dev Team',
       nextTeam: 'CI Team',
+      message: 'Developer pushed commits to GitHub. Initializing compiler environment.',
+      isPreHandoff: false,
     });
 
     try {
-      await api.triggerSimulation(activeProject?.id, 1.0);
+      await api.simulatePipeline(activeProject?.id);
     } catch {
-      // continue with client progression if offline
+      // proceed with local simulator fallback
     }
 
-    let pollCount = 0;
+    if (simulationPollRef.current) clearInterval(simulationPollRef.current);
+
     simulationPollRef.current = setInterval(async () => {
-      pollCount++;
       try {
-        const liveStatus = await api.getLivePipelineStatus(activeProject?.id);
+        const live = await api.getLivePipelineStatus();
+        if (live && typeof live.progress === 'number' && live.progress > 0) {
+          setSimPercent(live.progress);
+          setSimStage(live.current_stage || 'build');
 
-        if (liveStatus) {
-          const currentP = Math.min(100, liveStatus.percent);
-          setSimPercent(currentP);
-
-          if (currentP < 25) setSimStage('build');
-          else if (currentP < 50) setSimStage('test');
-          else if (currentP < 80) setSimStage('docker');
-          else setSimStage('deploy');
-
-          if (liveStatus.handoffAlert) {
-            setSimAlert(liveStatus.handoffAlert);
-          } else if (currentP >= 75 && currentP < 85) {
+          if (live.handoff_alert) {
             setSimAlert({
               level: 'warning',
-              message: 'Heads-Up Role Handoff: QA Testing is at 78% passing. CD Release Team standby for Docker container packaging and rollout!',
-              team: 'QA Testing Team',
-              nextTeam: 'CD Release Team',
+              team: live.handoff_alert.from_team,
+              nextTeam: live.handoff_alert.to_team,
+              message: live.handoff_alert.message,
               isPreHandoff: true,
             });
           }
 
-          if (liveStatus.isFinished || currentP >= 100 || pollCount > 30) {
+          if (live.progress >= 100) {
             clearInterval(simulationPollRef.current);
+            simulationPollRef.current = null;
             setIsSimulating(false);
-            setSimPercent(100);
-            setSimStage('deploy');
             setSimAlert({
               level: 'success',
-              message: 'Pipeline Execution Completed! All stages passed. Version deployed to Production.',
               team: 'CD Release Team',
-              nextTeam: 'All Systems Operational',
+              nextTeam: 'Production',
+              message: 'Pipeline completed! All tests passed and Docker containers deployed successfully.',
               isPreHandoff: false,
             });
-
-            // Refetch summary & runs so new run appears immediately
             fetchSummary(activeProject?.id);
             fetchRuns(activeProject?.id);
           }
+          return;
         }
       } catch {
-        // Stop on error
-        clearInterval(simulationPollRef.current);
-        setIsSimulating(false);
-        setSimPercent(100);
+        // fallback to smooth timer
       }
+
+      setSimPercent((prev) => {
+        const next = prev + 5;
+        if (next < 25) {
+          setSimStage('build');
+          setSimAlert({
+            level: 'info',
+            team: 'Dev Team',
+            nextTeam: 'CI Team',
+            message: 'Source committed and checked out. Compiling dependencies.',
+            isPreHandoff: false,
+          });
+        } else if (next < 50) {
+          setSimStage('test');
+          if (next >= 40) {
+            setSimAlert({
+              level: 'warning',
+              team: 'CI Team',
+              nextTeam: 'QA Testing Team',
+              message: 'Heads-up: CI Build is 80% finished. QA Testing Team please prepare Vitest suites!',
+              isPreHandoff: true,
+            });
+          } else {
+            setSimAlert({
+              level: 'info',
+              team: 'CI Team',
+              nextTeam: 'QA Testing Team',
+              message: 'Build successful. Running linter and compiler checks.',
+              isPreHandoff: false,
+            });
+          }
+        } else if (next < 80) {
+          setSimStage('docker');
+          if (next >= 75) {
+            setSimAlert({
+              level: 'warning',
+              team: 'QA Testing Team',
+              nextTeam: 'CD Release Team',
+              message: 'Heads-up: QA Pytest suites are wrapping up at 80%. CD Release Team ready Docker staging!',
+              isPreHandoff: true,
+            });
+          } else {
+            setSimAlert({
+              level: 'info',
+              team: 'QA Testing Team',
+              nextTeam: 'CD Release Team',
+              message: 'All 112 unit & integration tests executing in parallel.',
+              isPreHandoff: false,
+            });
+          }
+        } else if (next < 100) {
+          setSimStage('deploy');
+          setSimAlert({
+            level: 'info',
+            team: 'CD Release Team',
+            nextTeam: 'Production',
+            message: 'Building Docker container image and preparing blue-green deployment.',
+            isPreHandoff: false,
+          });
+        } else {
+          clearInterval(simulationPollRef.current);
+          simulationPollRef.current = null;
+          setIsSimulating(false);
+          setSimAlert({
+            level: 'success',
+            team: 'CD Release Team',
+            nextTeam: 'Production Cluster',
+            message: 'Pipeline finished with 100% success! Docker container live in production.',
+            isPreHandoff: false,
+          });
+          fetchSummary(activeProject?.id);
+          fetchRuns(activeProject?.id);
+          return 100;
+        }
+        return next;
+      });
     }, 1000);
   }, [activeProject, fetchSummary, fetchRuns]);
 
   const resetSimulation = useCallback(() => {
-    if (simulationPollRef.current) clearInterval(simulationPollRef.current);
+    if (simulationPollRef.current) {
+      clearInterval(simulationPollRef.current);
+      simulationPollRef.current = null;
+    }
     setIsSimulating(false);
     setSimPercent(100);
     setSimStage('deploy');
     setSimAlert(null);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (simulationPollRef.current) clearInterval(simulationPollRef.current);
+    };
   }, []);
 
   return (
@@ -271,6 +460,22 @@ export function ThemeAndProjectProvider({ children }) {
         isDark: theme === 'dark',
         toggleTheme,
         setTheme,
+        user,
+        isAuthenticated,
+        login,
+        logout,
+        toggleGithubConnection,
+        workspaces,
+        activeWorkspace,
+        setActiveWorkspace,
+        openWorkspace,
+        cloneWorkspace,
+        activeTab,
+        setActiveTab,
+        isAiCopilotOpen,
+        toggleAiCopilot,
+        closeAiCopilot,
+        openAiCopilot,
         isSidebarOpen,
         setIsSidebarOpen,
         toggleSidebar,
@@ -315,4 +520,3 @@ export function useThemeAndProject() {
   }
   return context;
 }
-

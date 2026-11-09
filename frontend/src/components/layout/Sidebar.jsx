@@ -1,33 +1,79 @@
 import React from 'react';
 import {
   LayoutDashboard,
-  GitBranch,
+  FolderGit2,
+  GitCommit,
+  Activity,
   History,
   Rocket,
-  FlaskConical,
-  AlertOctagon,
-  FolderGit2,
-  Activity,
-  GitCommit,
+  Sparkles,
   ShieldCheck,
   X,
+  Layers,
+  FlaskConical,
+  AlertOctagon,
 } from 'lucide-react';
 import DockerContainersWidget from '../deployments/DockerContainersWidget';
 import { useThemeAndProject } from '../../context/ThemeAndProjectContext';
 
 export default function Sidebar({ activeTab, setActiveTab }) {
-  const { toggleGitDrawer, isSidebarOpen, closeSidebar } = useThemeAndProject();
+  const {
+    toggleGitDrawer,
+    isSidebarOpen,
+    closeSidebar,
+    isAiCopilotOpen,
+    toggleAiCopilot,
+    workspaces,
+  } = useThemeAndProject();
 
-  const navItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'source-control', label: 'Source Control (1-Click Git)', icon: GitCommit, action: toggleGitDrawer },
-    { id: 'pipelines', label: 'Pipelines & Handoff', icon: GitBranch },
-    { id: 'history', label: 'Build History', icon: History },
-    { id: 'deployments', label: 'Deployments (1-2h View)', icon: Rocket },
-    { id: 'tests', label: 'Test Results', icon: FlaskConical },
-    { id: 'errors', label: 'Errors & Logs', icon: AlertOctagon },
-    { id: 'projects', label: 'Projects', icon: FolderGit2 },
+  const primaryNavItems = [
+    {
+      id: 'overview',
+      aliases: ['dashboard'],
+      label: 'Overview',
+      icon: LayoutDashboard,
+    },
+    {
+      id: 'workspaces',
+      aliases: ['projects'],
+      label: 'Workspaces & Repo Hub',
+      icon: FolderGit2,
+      badge: `${workspaces.length || 4}`,
+    },
+    {
+      id: 'source-control',
+      aliases: [],
+      label: 'Source Control (1-Click Git)',
+      icon: GitCommit,
+      badge: 'Sync',
+      onClick: () => {
+        setActiveTab('source-control');
+        toggleGitDrawer();
+      },
+    },
+    {
+      id: 'analytics',
+      aliases: ['pipelines'],
+      label: 'Analytics & Charts',
+      icon: Activity,
+    },
+    {
+      id: 'runs',
+      aliases: ['history', 'tests', 'errors'],
+      label: 'Runs & Diagnostics',
+      icon: History,
+    },
+    {
+      id: 'deployments',
+      aliases: [],
+      label: 'Deployments & Docker',
+      icon: Rocket,
+    },
   ];
+
+  const isItemActive = (item) => {
+    return activeTab === item.id || (item.aliases && item.aliases.includes(activeTab));
+  };
 
   return (
     <>
@@ -76,39 +122,72 @@ export default function Sidebar({ activeTab, setActiveTab }) {
         {/* Navigation Links */}
         <nav className="flex-1 px-3 py-4 space-y-1.5 overflow-y-auto">
           <div className="px-3 pb-2 text-[10px] font-bold uppercase tracking-wider text-[#94A3B8]">
-            Core Workflows
+            Core Views
           </div>
-          {navItems.map((item) => {
+
+          {primaryNavItems.map((item) => {
             const Icon = item.icon;
-            const isActive = activeTab === item.id;
+            const active = isItemActive(item);
 
             return (
               <button
                 key={item.id}
                 onClick={() => {
-                  if (item.action) {
-                    item.action();
+                  if (item.onClick) {
+                    item.onClick();
                   } else {
                     setActiveTab(item.id);
                   }
                   closeSidebar();
                 }}
                 className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 ${
-                  isActive
+                  active
                     ? 'bg-[#1C1E24] text-[#F8FAFC] border-l-4 border-[#D4AF37] shadow-sm font-semibold'
                     : 'text-[#94A3B8] hover:text-[#F8FAFC] hover:bg-[#1C1E24]/60'
                 }`}
               >
-                <Icon className={`w-4 h-4 ${isActive ? 'text-[#D4AF37]' : 'text-[#94A3B8] group-hover:text-[#F8FAFC]'}`} />
+                <Icon
+                  className={`w-4 h-4 flex-shrink-0 ${
+                    active ? 'text-[#D4AF37]' : 'text-[#94A3B8]'
+                  }`}
+                />
                 <span className="truncate">{item.label}</span>
-                {item.id === 'source-control' && (
-                  <span className="ml-auto text-[10px] bg-[#1C1E24] text-[#D4AF37] px-1.5 py-0.5 rounded font-mono border border-[#323742]">
-                    Sync
+                {item.badge && (
+                  <span
+                    className={`ml-auto text-[10px] px-2 py-0.5 rounded-full font-mono border ${
+                      active
+                        ? 'bg-[#D4AF37]/20 text-[#D4AF37] border-[#D4AF37]/40'
+                        : 'bg-[#1C1E24] text-[#94A3B8] border-[#323742]'
+                    }`}
+                  >
+                    {item.badge}
                   </span>
                 )}
               </button>
             );
           })}
+
+          {/* Dedicated Copilot Action Row */}
+          <div className="pt-3">
+            <div className="px-3 pb-2 text-[10px] font-bold uppercase tracking-wider text-[#94A3B8]">
+              AI Companion
+            </div>
+            <button
+              onClick={() => {
+                toggleAiCopilot();
+                closeSidebar();
+              }}
+              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all ${
+                isAiCopilotOpen
+                  ? 'bg-[#1C1E24] text-[#D4AF37] border border-[#D4AF37]/50 shadow-sm'
+                  : 'text-[#F8FAFC] bg-[#1C1E24]/40 hover:bg-[#1C1E24] border border-[#323742]'
+              }`}
+            >
+              <Sparkles className="w-4 h-4 text-[#D4AF37]" />
+              <span className="truncate">DevPulse Copilot</span>
+              <span className="ml-auto w-2 h-2 rounded-full bg-emerald-400"></span>
+            </button>
+          </div>
         </nav>
 
         {/* Bottom Live Docker Health & CI/CD Status */}
