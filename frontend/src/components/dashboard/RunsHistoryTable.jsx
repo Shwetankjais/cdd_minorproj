@@ -2,6 +2,34 @@ import React, { useState } from 'react';
 import { Search, GitBranch, CheckCircle2, XCircle, Clock, User, Loader2 } from 'lucide-react';
 import { useThemeAndProject } from '../../context/ThemeAndProjectContext';
 
+function formatTriggeredTime(run) {
+  if (!run) return 'Just now';
+  if (run.relativeTime && typeof run.relativeTime === 'string') return run.relativeTime;
+  if (run.triggered && typeof run.triggered === 'string') return run.triggered;
+
+  const rawTime = run.created_at || run.started_at || run.triggered_at || run.timestamp || run.started;
+  if (rawTime) {
+    try {
+      const date = new Date(rawTime);
+      if (!isNaN(date.getTime())) {
+        const diffSec = Math.floor((Date.now() - date.getTime()) / 1000);
+        if (diffSec < 0) return 'Just now';
+        if (diffSec < 60) return `${Math.max(1, diffSec)}s ago`;
+        const diffMin = Math.floor(diffSec / 60);
+        if (diffMin < 60) return `${diffMin}m ago`;
+        const diffHours = Math.floor(diffMin / 60);
+        if (diffHours < 24) return `${diffHours}h ago`;
+        const diffDays = Math.floor(diffHours / 24);
+        return `${diffDays}d ago`;
+      }
+    } catch {
+      // fallback
+    }
+  }
+
+  return 'Just now';
+}
+
 export default function RunsHistoryTable() {
   const { runs, selectedRun, setSelectedRun, runsLoading } = useThemeAndProject();
 
@@ -106,7 +134,7 @@ export default function RunsHistoryTable() {
               </tr>
             ) : (
               filteredRuns.map((run) => {
-                const isSelected = selectedRun.id === run.id;
+                const isSelected = selectedRun?.id === run.id;
                 const isPassed = run.status === 'Passed';
                 const isFailed = run.status.includes('Failed');
 
@@ -178,8 +206,8 @@ export default function RunsHistoryTable() {
                     </td>
 
                     {/* Triggered */}
-                    <td className="py-2.5 px-3 text-[#64748B] dark:text-[#94A3B8] font-mono text-[11px]">
-                      {run.relativeTime}
+                    <td className="py-2.5 px-3 text-[#64748B] dark:text-[#94A3B8] font-mono text-[11px] whitespace-nowrap">
+                      {formatTriggeredTime(run)}
                     </td>
                   </tr>
                 );

@@ -17,25 +17,100 @@ export default function PipelineStageVisualizer() {
     { id: 'deploy', name: 'Deploy', icon: Rocket, duration: '52s', team: 'CD Release Team', pctRange: [80, 100] },
   ];
 
-  const getStageStatus = (stage) => {
-    if (!isSimulating) {
-      if (selectedRun.status === 'Failed at Build') {
-        if (stage.id === 'build') return 'failed';
-        return 'skipped';
-      }
-      if (selectedRun.status === 'Failed at Test') {
-        if (stage.id === 'build') return 'completed';
-        if (stage.id === 'test') return 'failed';
-        return 'skipped';
-      }
-      return 'completed';
+  const STAGE_ORDER = ['build', 'test', 'docker', 'deploy'];
+
+  const isRunFailed = !isSimulating && Boolean(
+    selectedRun?.status?.includes('Failed') ||
+    selectedRun?.status === 'failure' ||
+    selectedRun?.conclusion === 'failure' ||
+    selectedRun?.status === 'Failed'
+  );
+
+  const getFailedStageId = () => {
+    if (!isRunFailed || !selectedRun) return null;
+
+    const status = (selectedRun.status || '').toLowerCase();
+    const errorStage = (selectedRun.errorSummary?.failedStage || '').toLowerCase();
+    const currentStage = (selectedRun.current_stage || '').toLowerCase();
+
+    if (
+      status.includes('build') ||
+      errorStage.includes('build') ||
+      currentStage.includes('build') ||
+      currentStage.includes('checkout') ||
+      currentStage.includes('install')
+    ) {
+      return 'build';
+    }
+    if (
+      status.includes('test') ||
+      errorStage.includes('test') ||
+      currentStage.includes('test') ||
+      (selectedRun.testResults && selectedRun.testResults.failed > 0)
+    ) {
+      return 'test';
+    }
+    if (
+      status.includes('docker') ||
+      errorStage.includes('docker') ||
+      currentStage.includes('docker')
+    ) {
+      return 'docker';
+    }
+    if (
+      status.includes('deploy') ||
+      errorStage.includes('deploy') ||
+      currentStage.includes('deploy')
+    ) {
+      return 'deploy';
     }
 
-    // During live simulation
-    const [minPct, maxPct] = stage.pctRange;
-    if (simPercent >= maxPct) return 'completed';
-    if (simPercent >= minPct && simPercent < maxPct) return 'running';
-    return 'queued';
+    if (Array.isArray(selectedRun.waterfall)) {
+      const failedStep = selectedRun.waterfall.find(
+        (w) => w.status === 'Failed' || (typeof w.label === 'string' && w.label.includes('Failed'))
+      );
+      if (failedStep) {
+        const stepName = (failedStep.stage || '').toLowerCase();
+        if (stepName.includes('checkout') || stepName.includes('install') || stepName.includes('build')) return 'build';
+        if (stepName.includes('test')) return 'test';
+        if (stepName.includes('docker')) return 'docker';
+        if (stepName.includes('deploy')) return 'deploy';
+      }
+    }
+
+    return 'build';
+  };
+
+  const failedStageId = getFailedStageId();
+
+  const getStageStatus = (stage) => {
+    if (isSimulating) {
+      const [minPct, maxPct] = stage.pctRange;
+      if (simPercent >= maxPct) return 'completed';
+      if (simPercent >= minPct && simPercent < maxPct) return 'running';
+      return 'queued';
+    }
+
+    if (isRunFailed) {
+      const failedIdx = STAGE_ORDER.indexOf(failedStageId);
+      const currentIdx = STAGE_ORDER.indexOf(stage.id);
+
+      if (currentIdx < failedIdx) return 'completed';
+      if (currentIdx === failedIdx) return 'failed';
+      return 'skipped';
+    }
+
+    return 'completed';
+  };
+
+  const getConnectorWidth = () => {
+    if (isSimulating) return `${simPercent}%`;
+    if (!isRunFailed) return '100%';
+    const failedIdx = STAGE_ORDER.indexOf(failedStageId);
+    if (failedIdx <= 0) return '0%';
+    if (failedIdx === 1) return '33.33%';
+    if (failedIdx === 2) return '66.66%';
+    return '100%';
   };
 
   return (
@@ -46,11 +121,11 @@ export default function PipelineStageVisualizer() {
           <h2 className="text-sm font-semibold text-[#0F172A] dark:text-[#F8FAFC] flex items-center gap-2">
             <span>Pipeline Execution Flow</span>
             <span className="font-mono text-xs text-[#0F172A] dark:text-[#D4AF37] bg-[#FAF8F5] dark:bg-[#1A1E29] px-2 py-0.5 rounded border border-[#E2E8F0] dark:border-[#262930]">
-              {isSimulating ? '#1288 (Live Simulation)' : selectedRun.id}
+              {isSimulating ? '#1288 (Live Simulation)' : selectedRun?.id || '#1287'}
             </span>
           </h2>
           <span className="text-xs font-mono text-[#64748B] dark:text-[#94A3B8] hidden md:inline">
-            commit: {selectedRun.commitHash || '121fac2'} ({selectedRun.branch})
+            commit: {selectedRun?.commitHash || '121fac2'} ({selectedRun?.branch || 'main'})
           </span>
         </div>
 
@@ -60,10 +135,12 @@ export default function PipelineStageVisualizer() {
               <Loader2 className="w-3 h-3 animate-spin" />
               running ({simPercent}%)
             </span>
-          ) : selectedRun.status.includes('Failed') ? (
+          ) : isRunFailed ? (
             <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded text-xs font-mono font-medium bg-[#E63946]/10 text-[#E63946] border border-[#E63946]/30">
               <span className="w-1.5 h-1.5 rounded-full bg-[#E63946]"></span>
-              {selectedRun.status}
+              {selectedRun?.status?.includes('Failed at')
+                ? selectedRun.status
+                : `Failed at ${stages.find((s) => s.id === failedStageId)?.name || 'Build'}`}
             </span>
           ) : (
             <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded text-xs font-mono font-medium bg-emerald-500/10 text-emerald-500 border border-emerald-500/30">
@@ -80,9 +157,11 @@ export default function PipelineStageVisualizer() {
           {/* Continuous connecting track background */}
           <div className="absolute left-[12.5%] right-[12.5%] top-6 sm:top-7 -translate-y-1/2 h-0.5 bg-[#E2E8F0] dark:bg-[#262930] z-0 pointer-events-none">
             <div
-              className="h-full bg-[#D4AF37] dark:bg-[#D4AF37] transition-all duration-200"
+              className={`h-full transition-all duration-200 ${
+                isRunFailed ? 'bg-[#E63946]' : 'bg-[#D4AF37]'
+              }`}
               style={{
-                width: isSimulating ? `${simPercent}%` : selectedRun.status.includes('Failed') ? '35%' : '100%',
+                width: getConnectorWidth(),
               }}
             ></div>
           </div>
@@ -150,7 +229,7 @@ export default function PipelineStageVisualizer() {
                 <div className="mt-2 text-center">
                   <p className="text-xs font-semibold text-[#0F172A] dark:text-[#F8FAFC]">{stage.name}</p>
                   <p className="text-[11px] text-[#64748B] dark:text-[#94A3B8] font-mono tabular-nums mt-0.5">
-                    {stage.duration}
+                    {status === 'skipped' ? 'Skipped' : stage.duration}
                   </p>
                   <span className="text-[10px] font-mono text-[#64748B] dark:text-[#94A3B8] hidden sm:block">
                     {stage.team}

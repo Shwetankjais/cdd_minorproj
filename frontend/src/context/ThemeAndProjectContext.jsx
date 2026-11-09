@@ -209,8 +209,15 @@ export function ThemeAndProjectProvider({ children }) {
       if (Array.isArray(data) && data.length > 0) {
         setRuns(data);
         setSelectedRun((prev) => {
-          const match = data.find((r) => r.id === prev?.id || r.rawId === prev?.rawId);
-          return match || data[0];
+          // If the user already manually selected a specific run (not initial mock), preserve it
+          if (prev && prev.id && prev.id !== '#1287') {
+            const match = data.find((r) => r.id === prev.id || r.rawId === prev.rawId);
+            if (match) return match;
+          }
+          // Default Overview card to latest main branch run (preferring Passed), or latest main, or first run
+          const mainPassed = data.find((r) => r.branch === 'main' && (r.status === 'Passed' || r.status === 'success'));
+          const mainRun = data.find((r) => r.branch === 'main');
+          return mainPassed || mainRun || data[0];
         });
       }
     } catch {

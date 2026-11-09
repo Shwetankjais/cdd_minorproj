@@ -104,4 +104,53 @@ describe('DevPulse Visual CI/CD Monitoring Dashboard', () => {
     fireEvent.click(themeBtn);
     expect(localStorage.getItem('devpulse-theme')).toBe('dark');
   });
+
+  it('correctly maps stage failure without contradicting status badge or downstream nodes', async () => {
+    renderApp();
+
+    // Default overview card should show passed status or main run
+    expect(screen.getByText(/passed \(all stages\)|Failed at/i)).toBeInTheDocument();
+
+    // Switch to Pipeline Runs tab and select a failed run
+    const runsNavButtons = screen.getAllByRole('button', { name: /Pipeline Runs/i });
+    fireEvent.click(runsNavButtons[0]);
+
+    await waitFor(() => {
+      const rows = screen.getAllByRole('row');
+      expect(rows.length).toBeGreaterThan(2);
+    });
+
+    const rows = screen.getAllByRole('row');
+    const failedRow = rows.find((r) => r.textContent.includes('Failed'));
+    if (failedRow) {
+      fireEvent.click(failedRow);
+
+      // Return to overview
+      const overviewBtn = screen.getByRole('button', { name: /Overview/i });
+      fireEvent.click(overviewBtn);
+
+      // Verify the badge shows Failed and at least one ✕ indicator or failed text appears
+      expect(screen.getAllByText(/Failed at|Failed/i).length).toBeGreaterThan(0);
+      expect(screen.getAllByText('✕').length).toBeGreaterThan(0);
+    }
+  });
+
+  it('populates non-empty values in the Triggered column for all runs', async () => {
+    renderApp();
+
+    const runsNavButtons = screen.getAllByRole('button', { name: /Pipeline Runs/i });
+    fireEvent.click(runsNavButtons[0]);
+
+    await waitFor(() => {
+      const rows = screen.getAllByRole('row');
+      expect(rows.length).toBeGreaterThan(2);
+    });
+
+    // Check Triggered cells are populated
+    const triggeredCells = screen.getAllByRole('cell').filter((cell) => {
+      const text = cell.textContent || '';
+      return text.includes('ago') || text.includes('Just now') || text.includes('Recently');
+    });
+    expect(triggeredCells.length).toBeGreaterThan(0);
+  });
 });

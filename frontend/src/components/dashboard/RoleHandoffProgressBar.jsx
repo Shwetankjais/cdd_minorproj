@@ -4,6 +4,7 @@ import { useThemeAndProject } from '../../context/ThemeAndProjectContext';
 
 export default function RoleHandoffProgressBar() {
   const {
+    selectedRun,
     isSimulating,
     simPercent,
     simAlert,
@@ -11,7 +12,46 @@ export default function RoleHandoffProgressBar() {
     getRoleTeamForPercent,
   } = useThemeAndProject();
 
-  const currentRole = getRoleTeamForPercent(simPercent);
+  const isRunFailed = !isSimulating && Boolean(
+    selectedRun?.status?.includes('Failed') ||
+    selectedRun?.status === 'failure' ||
+    selectedRun?.conclusion === 'failure'
+  );
+
+  const getHaltedPercent = () => {
+    if (!isRunFailed || !selectedRun) return 100;
+    const status = (selectedRun.status || '').toLowerCase();
+    const errorStage = (selectedRun.errorSummary?.failedStage || '').toLowerCase();
+    const currentStage = (selectedRun.current_stage || '').toLowerCase();
+
+    if (
+      status.includes('build') ||
+      errorStage.includes('build') ||
+      currentStage.includes('build') ||
+      currentStage.includes('checkout') ||
+      currentStage.includes('install')
+    ) {
+      return 25;
+    }
+    if (
+      status.includes('test') ||
+      errorStage.includes('test') ||
+      currentStage.includes('test') ||
+      (selectedRun.testResults && selectedRun.testResults.failed > 0)
+    ) {
+      return 50;
+    }
+    if (status.includes('docker') || errorStage.includes('docker') || currentStage.includes('docker')) {
+      return 75;
+    }
+    if (status.includes('deploy') || errorStage.includes('deploy') || currentStage.includes('deploy')) {
+      return 90;
+    }
+    return 25;
+  };
+
+  const effectivePercent = isSimulating ? simPercent : isRunFailed ? getHaltedPercent() : 100;
+  const currentRole = getRoleTeamForPercent(effectivePercent);
 
   const segments = [
     {
@@ -68,7 +108,11 @@ export default function RoleHandoffProgressBar() {
 
         <div className="flex items-center gap-2">
           <span className="text-xs font-mono font-semibold tabular-nums text-[#0F172A] dark:text-[#F8FAFC]">
-            {simPercent}% Complete
+            {isSimulating
+              ? `${simPercent}% Complete`
+              : isRunFailed
+              ? `${effectivePercent}% (Halted)`
+              : '100% Complete'}
           </span>
           {!isSimulating && (
             <button
@@ -86,22 +130,27 @@ export default function RoleHandoffProgressBar() {
       <div className="space-y-1.5">
         <div className="h-2 w-full bg-[#E2E8F0] dark:bg-[#262930] rounded-sm overflow-hidden flex relative">
           <div
-            className="h-full bg-[#D4AF37] transition-all duration-150"
-            style={{ width: `${simPercent}%` }}
+            className={`h-full transition-all duration-150 ${
+              isRunFailed ? 'bg-[#E63946]' : 'bg-[#D4AF37]'
+            }`}
+            style={{ width: `${effectivePercent}%` }}
           ></div>
         </div>
 
         {/* Segment Labels Grid */}
         <div className="grid grid-cols-4 gap-1 text-[11px]">
           {segments.map((seg) => {
-            const isCurrent = simPercent >= seg.min && (simPercent < seg.max || (seg.max === 100 && simPercent === 100));
-            const isDone = simPercent >= seg.max;
+            const isCurrent = effectivePercent >= seg.min && (effectivePercent < seg.max || (seg.max === 100 && effectivePercent === 100));
+            const isDone = effectivePercent >= seg.max;
+            const isHaltedHere = isRunFailed && isCurrent;
 
             return (
               <div
                 key={seg.id}
                 className={`p-1.5 rounded-md border transition-colors ${
-                  isCurrent
+                  isHaltedHere
+                    ? 'border-[#E63946] bg-[#E63946]/10 text-[#0F172A] dark:text-[#F8FAFC] font-semibold'
+                    : isCurrent
                     ? 'border-[#D4AF37] bg-[#D4AF37]/10 text-[#0F172A] dark:text-[#F8FAFC] font-semibold'
                     : isDone
                     ? 'border-[#E2E8F0] dark:border-[#262930] bg-[#FAF8F5] dark:bg-[#1A1E29] text-[#64748B] dark:text-[#94A3B8]'

@@ -188,9 +188,15 @@ export const api = {
 
     let displayStatus = 'Passed';
     if (isFailure) {
-      if (raw.current_stage?.includes('Build')) displayStatus = 'Failed at Build';
-      else if (raw.current_stage?.includes('Test')) displayStatus = 'Failed at Test';
-      else displayStatus = 'Failed';
+      if (raw.current_stage?.includes('Build') || raw.current_stage?.includes('Checkout') || raw.current_stage?.includes('Install')) {
+        displayStatus = 'Failed at Build';
+      } else if (raw.current_stage?.includes('Test')) {
+        displayStatus = 'Failed at Test';
+      } else if (raw.current_stage?.includes('Deploy') || raw.current_stage?.includes('Docker')) {
+        displayStatus = 'Failed at Deploy';
+      } else {
+        displayStatus = 'Failed at Build';
+      }
     } else if (isCancelled) {
       displayStatus = 'Failed at Build';
     } else if (raw.status === 'in_progress') {
@@ -203,6 +209,9 @@ export const api = {
     const formattedDuration = `${durMin}m ${durRemainingSec}s`;
 
     const formattedId = String(raw.id).startsWith('#') ? raw.id : `#${String(raw.id).slice(-4)}`;
+
+    const rawTime = raw.created_at || raw.started_at || raw.triggered_at || raw.timestamp || raw.started;
+    const relativeTime = formatRelativeTime(rawTime);
 
     const waterfall = [
       { stage: 'Checkout', offsetSec: 0, durationSec: 7, label: '7s', status: 'Passed' },
@@ -245,11 +254,14 @@ export const api = {
       status: displayStatus,
       duration: formattedDuration,
       durationSeconds: durationSec,
-      triggered: formatRelativeTime(raw.created_at),
-      started: raw.created_at ? new Date(raw.created_at).toLocaleString() : 'Nov 8, 09:46 AM',
+      triggered: relativeTime,
+      relativeTime: relativeTime,
+      created_at: rawTime,
+      started: rawTime ? new Date(rawTime).toLocaleString() : 'Nov 8, 09:46 AM',
       commit: raw.title || raw.name || 'CI/CD pipeline update',
       author: raw.author || (raw.source === 'github' ? 'GitHub Actions' : 'Dev Team'),
       commitHash: String(raw.id).slice(0, 7),
+      current_stage: raw.current_stage || (displayStatus.includes('Test') ? 'Test' : 'Build'),
       testResults: {
         passed: isSuccess ? 112 : isFailure && displayStatus === 'Failed at Test' ? 98 : 0,
         failed: isFailure && displayStatus === 'Failed at Test' ? 8 : 0,
