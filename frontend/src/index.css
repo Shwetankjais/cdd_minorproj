@@ -5,19 +5,44 @@
 @layer base {
   :root {
     color-scheme: light dark;
-    --scrollbar-thumb: #94A3B8;
-    --scrollbar-track: #F1F5F9;
+    --bg-canvas: #FAF8F5;
+    --bg-card: #FFFFFF;
+    --border-card: #E2E8F0;
+    --border-divider: #E5E7EB;
+    --text-primary: #0F172A;
+    --text-secondary: #64748B;
+    --accent-gold: #D4AF37;
+    --accent-crimson: #E63946;
+    --accent-amber: #F59E0B;
+    --scrollbar-thumb: #CBD5E1;
+    --scrollbar-track: #FAF8F5;
   }
 
   .dark {
     color-scheme: dark;
-    --scrollbar-thumb: #334155;
-    --scrollbar-track: #0F172A;
+    --bg-canvas: #0A1128;
+    --bg-canvas-alt: #0D1B2A;
+    --bg-card: #1C1E24;
+    --bg-card-elevated: #23272F;
+    --border-card: #323742;
+    --border-divider: #2D3748;
+    --text-primary: #F8FAFC;
+    --text-secondary: #94A3B8;
+    --accent-gold: #D4AF37;
+    --accent-crimson: #E63946;
+    --accent-amber: #F59E0B;
+    --scrollbar-thumb: #323742;
+    --scrollbar-track: #0D1B2A;
   }
 
   * {
     scrollbar-width: thin;
     scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+  }
+
+  body {
+    background-color: var(--bg-canvas);
+    color: var(--text-primary);
   }
 }
 
@@ -53,4 +78,3 @@
   background-size: 200% 200%;
   animation: flowActive 3s ease infinite;
 }
-

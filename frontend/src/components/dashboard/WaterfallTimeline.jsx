@@ -1,9 +1,9 @@
 import React from 'react';
-import { Clock, CheckCircle2, AlertTriangle, Layers } from 'lucide-react';
+import { Clock, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { useThemeAndProject } from '../../context/ThemeAndProjectContext';
 
 export default function WaterfallTimeline() {
-  const { selectedRun, isSimulating, simPercent } = useThemeAndProject();
+  const { selectedRun } = useThemeAndProject();
 
   const waterfall = selectedRun.waterfall || [
     { stage: 'Checkout', offsetSec: 0, durationSec: 7, label: '7s', status: 'Passed' },
@@ -17,26 +17,26 @@ export default function WaterfallTimeline() {
   const totalRunSeconds = 233; // ~3m 53s total scale
 
   return (
-    <div className="p-6 rounded-2xl bg-white dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700/80 shadow-sm transition-all duration-200">
+    <div className="p-6 rounded-2xl bg-white dark:bg-[#1C1E24] border border-[#E2E8F0] dark:border-[#323742] shadow-warm-sm transition-all duration-200">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-4 border-b border-slate-100 dark:border-slate-700/60 mb-5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-4 border-b border-[#E2E8F0] dark:border-[#2D3748] mb-5">
         <div className="flex items-center gap-2">
-          <div className="p-1.5 rounded-lg bg-sky-500/10 text-sky-500">
+          <div className="p-1.5 rounded-lg bg-[#0A1128]/5 dark:bg-[#0D1B2A] text-[#0A1128] dark:text-[#D4AF37] border border-[#E2E8F0] dark:border-[#323742]">
             <Clock className="w-4 h-4" />
           </div>
           <div>
-            <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+            <h3 className="text-base font-bold text-[#0F172A] dark:text-[#F8FAFC] flex items-center gap-2">
               <span>Waterfall Execution Timeline</span>
-              <span className="font-mono text-xs text-sky-600 dark:text-sky-400">({selectedRun.id})</span>
+              <span className="font-mono text-xs text-[#0A1128] dark:text-[#D4AF37]">({selectedRun.id})</span>
             </h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
+            <p className="text-xs text-[#64748B] dark:text-[#94A3B8]">
               Stage scheduling offsets and wall-clock execution durations
             </p>
           </div>
         </div>
 
         <div className="flex items-center gap-2 text-xs">
-          <span className="font-mono font-bold px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-200">
+          <span className="font-mono font-bold px-2.5 py-1 rounded-lg bg-[#FAF8F5] dark:bg-[#0D1B2A] text-[#0F172A] dark:text-[#F8FAFC] border border-[#E2E8F0] dark:border-[#323742]">
             {selectedRun.duration || '3m 35s total'}
           </span>
         </div>
@@ -49,8 +49,8 @@ export default function WaterfallTimeline() {
           <span>Everything passed. All stages finished and the new version is live in production.</span>
         </div>
       ) : (
-        <div className="p-3 mb-5 rounded-xl bg-rose-50 dark:bg-rose-950/20 border border-rose-200/60 dark:border-rose-800/40 text-xs text-rose-800 dark:text-rose-200 flex items-center gap-2">
-          <AlertTriangle className="w-4 h-4 text-rose-500 flex-shrink-0" />
+        <div className="p-3 mb-5 rounded-xl bg-[#E63946]/10 dark:bg-[#E63946]/20 border border-[#E63946]/30 text-xs text-[#E63946] flex items-center gap-2">
+          <AlertTriangle className="w-4 h-4 text-[#E63946] flex-shrink-0" />
           <span>Pipeline halted prematurely due to stage failure in {selectedRun.status}. Subsequent stages skipped.</span>
         </div>
       )}
@@ -67,18 +67,18 @@ export default function WaterfallTimeline() {
           return (
             <div key={item.stage} className="grid grid-cols-12 items-center gap-3 text-xs">
               {/* Stage Name */}
-              <div className="col-span-3 sm:col-span-2 font-semibold text-slate-700 dark:text-slate-300">
+              <div className="col-span-3 sm:col-span-2 font-semibold text-[#0F172A] dark:text-[#F8FAFC]">
                 {item.stage}
               </div>
 
               {/* Progress Track & Bar */}
-              <div className="col-span-7 sm:col-span-9 relative h-6 bg-slate-100 dark:bg-slate-900/60 rounded-lg overflow-hidden border border-slate-200/60 dark:border-slate-800">
+              <div className="col-span-7 sm:col-span-9 relative h-6 bg-[#FAF8F5] dark:bg-[#0D1B2A] rounded-lg overflow-hidden border border-[#E2E8F0] dark:border-[#2D3748]">
                 {!isSkipped && (
                   <div
-                    className={`absolute top-0 bottom-0 rounded-md transition-all duration-300 flex items-center justify-end pr-2 text-[10px] font-bold text-white shadow-sm ${
+                    className={`absolute top-0 bottom-0 rounded-md transition-all duration-300 flex items-center justify-end pr-2 text-[10px] font-bold shadow-sm ${
                       isFailed
-                        ? 'bg-rose-500'
-                        : 'bg-gradient-to-r from-blue-600 to-sky-500'
+                        ? 'bg-[#E63946] text-white'
+                        : 'bg-gradient-to-r from-[#0A1128] to-[#D4AF37] dark:from-[#D4AF37] dark:to-[#C5A059] text-white dark:text-[#0A1128]'
                     }`}
                     style={{
                       left: `${leftPercent}%`,
@@ -90,14 +90,14 @@ export default function WaterfallTimeline() {
                   </div>
                 )}
                 {isSkipped && (
-                  <div className="absolute inset-0 flex items-center justify-center text-[10px] text-slate-400 font-mono italic">
+                  <div className="absolute inset-0 flex items-center justify-center text-[10px] text-[#64748B] dark:text-[#94A3B8] font-mono italic">
                     Skipped
                   </div>
                 )}
               </div>
 
               {/* Duration Label */}
-              <div className="col-span-2 sm:col-span-1 text-right font-mono font-medium text-slate-500 dark:text-slate-400 text-[11px]">
+              <div className="col-span-2 sm:col-span-1 text-right font-mono font-medium text-[#64748B] dark:text-[#94A3B8] text-[11px]">
                 {item.label}
               </div>
             </div>
@@ -106,7 +106,7 @@ export default function WaterfallTimeline() {
       </div>
 
       {/* Time Axis Legend */}
-      <div className="mt-5 pt-3 border-t border-slate-100 dark:border-slate-800 flex justify-between text-[10px] font-mono text-slate-400">
+      <div className="mt-5 pt-3 border-t border-[#E2E8F0] dark:border-[#2D3748] flex justify-between text-[10px] font-mono text-[#64748B] dark:text-[#94A3B8]">
         <span>0s</span>
         <span>1m 00s</span>
         <span>2m 00s</span>
@@ -116,4 +116,3 @@ export default function WaterfallTimeline() {
     </div>
   );
 }
-

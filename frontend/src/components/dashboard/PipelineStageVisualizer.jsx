@@ -41,34 +41,34 @@ export default function PipelineStageVisualizer() {
   };
 
   return (
-    <div className="p-6 rounded-2xl bg-white dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700/80 shadow-sm relative overflow-hidden transition-all duration-200">
+    <div className="p-6 rounded-2xl bg-white dark:bg-[#1C1E24] border border-[#E2E8F0] dark:border-[#323742] shadow-warm-sm relative overflow-hidden transition-all duration-200">
       {/* Card Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-6">
         <div className="flex items-center gap-3">
-          <h2 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+          <h2 className="text-base font-bold text-[#0F172A] dark:text-[#F8FAFC] flex items-center gap-2">
             <span>Latest Pipeline Run</span>
-            <span className="font-mono text-sky-600 dark:text-sky-400 bg-sky-50 dark:bg-sky-950/40 px-2 py-0.5 rounded-lg border border-sky-200 dark:border-sky-800/40 text-xs">
+            <span className="font-mono text-[#0A1128] dark:text-[#D4AF37] bg-[#FAF8F5] dark:bg-[#23272F] px-2 py-0.5 rounded-lg border border-[#E2E8F0] dark:border-[#323742] text-xs">
               {isSimulating ? '#1288 (Live Simulation)' : selectedRun.id}
             </span>
           </h2>
-          <span className="text-xs text-slate-500 dark:text-slate-400 hidden md:inline">
+          <span className="text-xs text-[#64748B] dark:text-[#94A3B8] hidden md:inline">
             Commit {selectedRun.commitHash || '121fac2'} on {selectedRun.branch}
           </span>
         </div>
 
         <div className="flex items-center gap-2">
           {isSimulating ? (
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-500 border border-amber-500/30 animate-pulse">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-[#F59E0B]/10 text-[#F59E0B] border border-[#F59E0B]/30 animate-pulse">
               <Loader2 className="w-3.5 h-3.5 animate-spin" />
               In-Progress ({simPercent}%)
             </span>
           ) : selectedRun.status.includes('Failed') ? (
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-rose-500/10 text-rose-500 border border-rose-500/30">
-              <span className="w-2 h-2 rounded-full bg-rose-500"></span>
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-[#E63946]/10 text-[#E63946] border border-[#E63946]/30">
+              <span className="w-2 h-2 rounded-full bg-[#E63946]"></span>
               {selectedRun.status}
             </span>
           ) : (
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-500 border border-emerald-500/30">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
               <Check className="w-3.5 h-3.5 stroke-[3]" />
               Success (All Stages Passed)
             </span>
@@ -80,10 +80,10 @@ export default function PipelineStageVisualizer() {
       <div className="py-4 px-2">
         <div className="grid grid-cols-4 relative items-center">
           {/* Continuous connecting track background */}
-          <div className="absolute left-[12.5%] right-[12.5%] top-1/2 -translate-y-6 h-1 bg-slate-200 dark:bg-slate-700 -z-0">
+          <div className="absolute left-[12.5%] right-[12.5%] top-1/2 -translate-y-6 h-1 bg-[#E2E8F0] dark:bg-[#2D3748] -z-0">
             {/* Dynamic progress bar line */}
             <div
-              className="h-full bg-gradient-to-r from-emerald-500 via-sky-500 to-blue-600 transition-all duration-300 rounded-full"
+              className="h-full bg-gradient-to-r from-emerald-500 via-[#D4AF37] to-[#0A1128] dark:to-[#F8FAFC] transition-all duration-300 rounded-full"
               style={{
                 width: isSimulating ? `${simPercent}%` : selectedRun.status.includes('Failed') ? '35%' : '100%',
               }}
@@ -106,12 +106,12 @@ export default function PipelineStageVisualizer() {
                   <div
                     className={`w-14 h-14 sm:w-16 sm:h-16 rounded-full flex items-center justify-center transition-all duration-300 ${
                       isCompleted
-                        ? 'bg-emerald-500/10 dark:bg-emerald-950/40 border-2 border-emerald-500 text-emerald-500 shadow-lg shadow-emerald-500/20'
+                        ? 'bg-emerald-500/10 dark:bg-emerald-950/40 border-2 border-emerald-500 text-emerald-600 dark:text-emerald-400 shadow-lg shadow-emerald-500/20'
                         : isRunning
-                        ? 'bg-amber-500/10 dark:bg-amber-950/40 border-2 border-amber-400 text-amber-400 ring-4 ring-amber-400/20 animate-pulse'
+                        ? 'bg-[#F59E0B]/10 dark:bg-[#F59E0B]/20 border-2 border-[#F59E0B] text-[#F59E0B] ring-4 ring-[#F59E0B]/20 animate-pulse'
                         : isFailed
-                        ? 'bg-rose-500/10 dark:bg-rose-950/40 border-2 border-rose-500 text-rose-500 shadow-lg shadow-rose-500/20'
-                        : 'bg-slate-100 dark:bg-slate-800 border-2 border-slate-300 dark:border-slate-700 text-slate-400'
+                        ? 'bg-[#E63946]/10 dark:bg-[#E63946]/20 border-2 border-[#E63946] text-[#E63946] shadow-lg shadow-[#E63946]/20'
+                        : 'bg-[#FAF8F5] dark:bg-[#23272F] border-2 border-[#E2E8F0] dark:border-[#323742] text-[#94A3B8]'
                     }`}
                   >
                     {isRunning ? (
@@ -129,7 +129,7 @@ export default function PipelineStageVisualizer() {
                       </div>
                     )}
                     {isFailed && (
-                      <div className="w-5 h-5 rounded-full bg-rose-500 text-white flex items-center justify-center text-[10px] font-bold shadow">
+                      <div className="w-5 h-5 rounded-full bg-[#E63946] text-white flex items-center justify-center text-[10px] font-bold shadow">
                         ✕
                       </div>
                     )}
@@ -138,11 +138,11 @@ export default function PipelineStageVisualizer() {
 
                 {/* Node Label & Duration */}
                 <div className="mt-3 text-center">
-                  <p className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">{stage.name}</p>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400 font-mono mt-0.5">
+                  <p className="text-xs sm:text-sm font-bold text-[#0F172A] dark:text-[#F8FAFC]">{stage.name}</p>
+                  <p className="text-[11px] text-[#64748B] dark:text-[#94A3B8] font-mono mt-0.5">
                     {stage.duration}
                   </p>
-                  <span className="text-[10px] text-slate-400 dark:text-slate-500 font-medium hidden sm:block">
+                  <span className="text-[10px] text-[#64748B] dark:text-[#94A3B8] font-medium hidden sm:block">
                     {stage.team}
                   </span>
                 </div>
@@ -153,10 +153,9 @@ export default function PipelineStageVisualizer() {
       </div>
 
       {/* Role Handoff Progress Bar & Pre-Notification Banner */}
-      <div className="mt-6 pt-5 border-t border-slate-200 dark:border-slate-700/80">
+      <div className="mt-6 pt-5 border-t border-[#E2E8F0] dark:border-[#2D3748]">
         <RoleHandoffProgressBar />
       </div>
     </div>
   );
 }
-

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Rocket, CheckCircle2, XCircle, RotateCcw, Clock, ShieldCheck, Filter, Loader2 } from 'lucide-react';
+import { Rocket, CheckCircle2, XCircle, RotateCcw, ShieldCheck, Filter, Loader2 } from 'lucide-react';
 import api from '../../services/api';
 import { mockDeployments } from '../../services/mockData';
 
@@ -45,19 +45,19 @@ export default function DeploymentHistoryView({ compact = false }) {
 
   if (compact) {
     return (
-      <div className="p-5 rounded-2xl bg-white dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700/80 shadow-sm transition-all duration-200 flex flex-col justify-between">
+      <div className="p-5 rounded-2xl bg-white dark:bg-[#1C1E24] border border-[#E2E8F0] dark:border-[#323742] shadow-warm-sm transition-all duration-200 flex flex-col justify-between">
         <div>
-          <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-700/60 mb-3">
+          <div className="flex items-center justify-between pb-3 border-b border-[#E2E8F0] dark:border-[#2D3748] mb-3">
             <div className="flex items-center gap-2">
-              <div className="p-1.5 rounded-lg bg-indigo-500/10 text-indigo-500">
+              <div className="p-1.5 rounded-lg bg-[#0A1128]/5 dark:bg-[#0D1B2A] text-[#0A1128] dark:text-[#D4AF37] border border-[#E2E8F0] dark:border-[#323742]">
                 <Rocket className="w-4 h-4" />
               </div>
-              <h3 className="text-sm font-bold text-slate-900 dark:text-white">Deployment History</h3>
+              <h3 className="text-sm font-bold text-[#0F172A] dark:text-[#F8FAFC]">Deployment History</h3>
             </div>
             {loading ? (
-              <Loader2 className="w-3.5 h-3.5 animate-spin text-sky-500" />
+              <Loader2 className="w-3.5 h-3.5 animate-spin text-[#D4AF37]" />
             ) : (
-              <span className="text-xs text-sky-600 dark:text-sky-400 font-semibold cursor-pointer hover:underline">
+              <span className="text-xs text-[#0A1128] dark:text-[#D4AF37] font-semibold cursor-pointer hover:underline">
                 View All →
               </span>
             )}
@@ -69,19 +69,19 @@ export default function DeploymentHistoryView({ compact = false }) {
               return (
                 <div
                   key={d.id || d.version}
-                  className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/40 border border-slate-200/60 dark:border-slate-800 flex items-center justify-between text-xs"
+                  className="p-2.5 rounded-xl bg-[#FAF8F5] dark:bg-[#0D1B2A] border border-[#E2E8F0] dark:border-[#323742] flex items-center justify-between text-xs"
                 >
                   <div className="flex items-center gap-2.5">
                     <span className="relative flex h-2 w-2">
                       <span
                         className={`relative inline-flex rounded-full h-2 w-2 ${
-                          isDeployed ? 'bg-emerald-500' : 'bg-rose-500'
+                          isDeployed ? 'bg-emerald-500' : 'bg-[#E63946]'
                         }`}
                       ></span>
                     </span>
                     <div>
-                      <p className="font-mono font-bold text-slate-900 dark:text-white">{d.version}</p>
-                      <p className="text-[10px] text-slate-400 font-mono">
+                      <p className="font-mono font-bold text-[#0F172A] dark:text-[#F8FAFC]">{d.version}</p>
+                      <p className="text-[10px] text-[#64748B] dark:text-[#94A3B8] font-mono">
                         {d.runId} • {d.commitHash}
                       </p>
                     </div>
@@ -91,13 +91,13 @@ export default function DeploymentHistoryView({ compact = false }) {
                     <span
                       className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-semibold ${
                         isDeployed
-                          ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
-                          : 'bg-rose-500/10 text-rose-600 dark:text-rose-400'
+                          ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
+                          : 'bg-[#E63946]/10 text-[#E63946] border border-[#E63946]/30'
                       }`}
                     >
                       {d.status}
                     </span>
-                    <p className="text-[10px] text-slate-400 mt-0.5">{d.relativeTime}</p>
+                    <p className="text-[10px] text-[#64748B] dark:text-[#94A3B8] mt-0.5">{d.relativeTime}</p>
                   </div>
                 </div>
               );
@@ -105,11 +105,11 @@ export default function DeploymentHistoryView({ compact = false }) {
           </div>
         </div>
 
-        <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 text-[11px] text-slate-400 flex items-center justify-between">
+        <div className="mt-3 pt-3 border-t border-[#E2E8F0] dark:border-[#2D3748] text-[11px] text-[#64748B] dark:text-[#94A3B8] flex items-center justify-between">
           <span>
-            Active Target: <strong>Kubernetes US-East</strong>
+            Active Target: <strong className="text-[#0F172A] dark:text-[#F8FAFC]">Kubernetes US-East</strong>
           </span>
-          <span className="text-emerald-500 font-semibold flex items-center gap-1">
+          <span className="text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
             <ShieldCheck className="w-3.5 h-3.5" /> 100% Healthy
           </span>
         </div>
@@ -118,34 +118,34 @@ export default function DeploymentHistoryView({ compact = false }) {
   }
 
   return (
-    <div className="p-6 rounded-2xl bg-white dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700/80 shadow-sm transition-all duration-200">
+    <div className="p-6 rounded-2xl bg-white dark:bg-[#1C1E24] border border-[#E2E8F0] dark:border-[#323742] shadow-warm-sm transition-all duration-200">
       {/* Header & Filter Controls */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100 dark:border-slate-700/60 mb-5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-[#E2E8F0] dark:border-[#2D3748] mb-5">
         <div className="flex items-center gap-2.5">
-          <div className="p-2 rounded-xl bg-indigo-500/10 text-indigo-500">
+          <div className="p-2 rounded-xl bg-[#0A1128]/5 dark:bg-[#0D1B2A] text-[#0A1128] dark:text-[#D4AF37] border border-[#E2E8F0] dark:border-[#323742]">
             <Rocket className="w-5 h-5" />
           </div>
           <div>
-            <h2 className="text-base font-bold text-slate-900 dark:text-white">
+            <h2 className="text-base font-bold text-[#0F172A] dark:text-[#F8FAFC]">
               Production Deployment Audit & Rollback Control
             </h2>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
+            <p className="text-xs text-[#64748B] dark:text-[#94A3B8]">
               Live releases fetched from /api/deployments with instant 1-click rollback capability
             </p>
           </div>
         </div>
 
         {/* Time-Range Filter */}
-        <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-900/60 p-1 rounded-xl border border-slate-200/70 dark:border-slate-700/50">
-          <span className="text-[11px] font-semibold text-slate-400 px-2 flex items-center gap-1">
+        <div className="flex items-center gap-1.5 bg-[#FAF8F5] dark:bg-[#0D1B2A] p-1 rounded-xl border border-[#E2E8F0] dark:border-[#323742]">
+          <span className="text-[11px] font-semibold text-[#64748B] dark:text-[#94A3B8] px-2 flex items-center gap-1">
             <Filter className="w-3 h-3" /> Time Range:
           </span>
           <button
             onClick={() => setFilterHours('1')}
             className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
               filterHours === '1'
-                ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm'
-                : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+                ? 'bg-white dark:bg-[#23272F] text-[#0F172A] dark:text-[#F8FAFC] shadow-sm border border-[#E2E8F0] dark:border-[#323742]'
+                : 'text-[#64748B] hover:text-[#0F172A] dark:text-[#94A3B8] dark:hover:text-[#F8FAFC]'
             }`}
           >
             Last 1h
@@ -154,8 +154,8 @@ export default function DeploymentHistoryView({ compact = false }) {
             onClick={() => setFilterHours('2')}
             className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
               filterHours === '2'
-                ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm'
-                : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+                ? 'bg-white dark:bg-[#23272F] text-[#0F172A] dark:text-[#F8FAFC] shadow-sm border border-[#E2E8F0] dark:border-[#323742]'
+                : 'text-[#64748B] hover:text-[#0F172A] dark:text-[#94A3B8] dark:hover:text-[#F8FAFC]'
             }`}
           >
             Last 2 Hours
@@ -164,8 +164,8 @@ export default function DeploymentHistoryView({ compact = false }) {
             onClick={() => setFilterHours('24')}
             className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
               filterHours === '24'
-                ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm'
-                : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+                ? 'bg-white dark:bg-[#23272F] text-[#0F172A] dark:text-[#F8FAFC] shadow-sm border border-[#E2E8F0] dark:border-[#323742]'
+                : 'text-[#64748B] hover:text-[#0F172A] dark:text-[#94A3B8] dark:hover:text-[#F8FAFC]'
             }`}
           >
             Last 24h
@@ -174,8 +174,8 @@ export default function DeploymentHistoryView({ compact = false }) {
             onClick={() => setFilterHours('all')}
             className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
               filterHours === 'all'
-                ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm'
-                : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+                ? 'bg-white dark:bg-[#23272F] text-[#0F172A] dark:text-[#F8FAFC] shadow-sm border border-[#E2E8F0] dark:border-[#323742]'
+                : 'text-[#64748B] hover:text-[#0F172A] dark:text-[#94A3B8] dark:hover:text-[#F8FAFC]'
             }`}
           >
             All Deployments
@@ -185,17 +185,17 @@ export default function DeploymentHistoryView({ compact = false }) {
 
       {/* Action Feedback Banner */}
       {actionFeedback && (
-        <div className="mb-4 p-3 rounded-xl bg-sky-50 dark:bg-sky-950/40 border border-sky-200 dark:border-sky-800/40 text-xs text-sky-800 dark:text-sky-200 flex items-center justify-between animate-pulse">
+        <div className="mb-4 p-3 rounded-xl bg-[#FAF8F5] dark:bg-[#0D1B2A] border border-[#D4AF37]/50 text-xs text-[#0A1128] dark:text-[#D4AF37] flex items-center justify-between animate-pulse">
           <span className="font-medium">{actionFeedback}</span>
-          <RotateCcw className="w-3.5 h-3.5 animate-spin text-sky-500" />
+          <RotateCcw className="w-3.5 h-3.5 animate-spin text-[#D4AF37]" />
         </div>
       )}
 
       {/* Deployment Table */}
-      <div className="overflow-x-auto rounded-xl border border-slate-200/80 dark:border-slate-700/60">
+      <div className="overflow-x-auto rounded-xl border border-[#E2E8F0] dark:border-[#323742]">
         <table className="w-full text-left text-xs border-collapse">
           <thead>
-            <tr className="bg-slate-50 dark:bg-slate-900/80 text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700/80 font-semibold">
+            <tr className="bg-[#FAF8F5] dark:bg-[#0D1B2A] text-[#64748B] dark:text-[#94A3B8] border-b border-[#E2E8F0] dark:border-[#323742] font-semibold">
               <th className="py-3 px-3.5">Version & Tag</th>
               <th className="py-3 px-3">Run & Commit</th>
               <th className="py-3 px-3">Environment</th>
@@ -204,17 +204,17 @@ export default function DeploymentHistoryView({ compact = false }) {
               <th className="py-3 px-3 text-right">Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+          <tbody className="divide-y divide-[#E2E8F0] dark:divide-[#2D3748]">
             {loading ? (
               <tr>
-                <td colSpan={6} className="py-8 text-center text-slate-400">
-                  <Loader2 className="w-5 h-5 animate-spin mx-auto mb-1 text-sky-500" />
+                <td colSpan={6} className="py-8 text-center text-[#64748B] dark:text-[#94A3B8]">
+                  <Loader2 className="w-5 h-5 animate-spin mx-auto mb-1 text-[#D4AF37]" />
                   <span>Loading live deployments from /api/deployments...</span>
                 </td>
               </tr>
             ) : deployments.length === 0 ? (
               <tr>
-                <td colSpan={6} className="py-8 text-center text-slate-400">
+                <td colSpan={6} className="py-8 text-center text-[#64748B] dark:text-[#94A3B8]">
                   No deployments found for the selected time window.
                 </td>
               </tr>
@@ -223,24 +223,24 @@ export default function DeploymentHistoryView({ compact = false }) {
                 const isDeployed = d.status === 'Deployed' || d.status === 'success';
 
                 return (
-                  <tr key={d.id || d.version} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/60 transition-colors">
-                    <td className="py-3.5 px-3.5 font-bold font-mono text-slate-900 dark:text-white flex items-center gap-2">
-                      <span className={`w-2 h-2 rounded-full ${isDeployed ? 'bg-emerald-500' : 'bg-rose-500'}`}></span>
+                  <tr key={d.id || d.version} className="hover:bg-[#FAF8F5]/80 dark:hover:bg-[#23272F]/50 transition-colors">
+                    <td className="py-3.5 px-3.5 font-bold font-mono text-[#0F172A] dark:text-[#F8FAFC] flex items-center gap-2">
+                      <span className={`w-2 h-2 rounded-full ${isDeployed ? 'bg-emerald-500' : 'bg-[#E63946]'}`}></span>
                       {d.version}
                     </td>
 
-                    <td className="py-3 px-3 font-mono text-slate-600 dark:text-slate-300">
-                      <span className="text-sky-600 dark:text-sky-400">{d.runId}</span> • {d.commitHash}
+                    <td className="py-3 px-3 font-mono text-[#0F172A] dark:text-[#F8FAFC]">
+                      <span className="text-[#0A1128] dark:text-[#D4AF37] font-semibold">{d.runId}</span> • {d.commitHash}
                     </td>
 
-                    <td className="py-3 px-3 text-slate-500 dark:text-slate-400">{d.environment}</td>
+                    <td className="py-3 px-3 text-[#64748B] dark:text-[#94A3B8]">{d.environment}</td>
 
                     <td className="py-3 px-3">
                       <span
                         className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full font-semibold text-[11px] ${
                           isDeployed
                             ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
-                            : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20'
+                            : 'bg-[#E63946]/10 text-[#E63946] border border-[#E63946]/30'
                         }`}
                       >
                         {isDeployed ? <CheckCircle2 className="w-3 h-3" /> : <XCircle className="w-3 h-3" />}
@@ -248,7 +248,7 @@ export default function DeploymentHistoryView({ compact = false }) {
                       </span>
                     </td>
 
-                    <td className="py-3 px-3 text-slate-400">
+                    <td className="py-3 px-3 text-[#64748B] dark:text-[#94A3B8]">
                       {d.timestamp} ({d.relativeTime})
                     </td>
 
@@ -257,7 +257,7 @@ export default function DeploymentHistoryView({ compact = false }) {
                         {d.canRollback && (
                           <button
                             onClick={() => handleRollback(d.version)}
-                            className="px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 transition-colors flex items-center gap-1"
+                            className="px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-[#FAF8F5] hover:bg-[#E2E8F0] dark:bg-[#23272F] dark:hover:bg-[#323742] text-[#0F172A] dark:text-[#F8FAFC] border border-[#E2E8F0] dark:border-[#323742] hover:border-[#E63946] hover:text-[#E63946] transition-colors flex items-center gap-1"
                             title="Rollback cluster to this release tag"
                           >
                             <RotateCcw className="w-3 h-3" />
@@ -266,7 +266,7 @@ export default function DeploymentHistoryView({ compact = false }) {
                         )}
                         <button
                           onClick={() => handleRedeploy(d.version)}
-                          className="px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-sky-500/10 hover:bg-sky-500/20 text-sky-600 dark:text-sky-400 transition-colors border border-sky-500/20"
+                          className="px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-[#D4AF37]/15 hover:bg-[#D4AF37]/25 text-[#0A1128] dark:text-[#D4AF37] transition-colors border border-[#D4AF37]/30"
                         >
                           Redeploy
                         </button>
@@ -282,4 +282,3 @@ export default function DeploymentHistoryView({ compact = false }) {
     </div>
   );
 }
-

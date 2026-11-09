@@ -19,8 +19,8 @@ export default function App() {
   const { projects, activeProject, setActiveProject } = useThemeAndProject();
 
   return (
-    <div className="flex min-h-screen bg-slate-50 dark:bg-[#0B1120] text-slate-800 dark:text-slate-100 transition-colors duration-200">
-      {/* 1. Left Sidebar Navigation (Navy Blue #0F172A) - Collapsible on <1024px */}
+    <div className="flex min-h-screen bg-[#FAF8F5] dark:bg-[#0A1128] text-[#0F172A] dark:text-[#F8FAFC] transition-colors duration-200">
+      {/* 1. Left Sidebar Navigation (Deep Midnight Navy #0A1128) - Collapsible on <1024px */}
       <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
 
       {/* Main Content Area: min-w-0 flex-1 overflow-x-hidden to eliminate layout squish */}
@@ -129,8 +129,8 @@ export default function App() {
           {activeTab === 'projects' && (
             <div className="space-y-6 min-w-0">
               <div>
-                <h2 className="text-lg font-bold text-slate-900 dark:text-white">Active Projects & Repositories</h2>
-                <p className="text-xs text-slate-500 dark:text-slate-400">
+                <h2 className="text-lg font-bold text-[#0F172A] dark:text-[#F8FAFC]">Active Projects & Repositories</h2>
+                <p className="text-xs text-[#64748B] dark:text-[#94A3B8]">
                   Select a repository to inspect its automated CI/CD pipeline health
                 </p>
               </div>
@@ -144,30 +144,30 @@ export default function App() {
                       onClick={() => setActiveProject(proj)}
                       className={`p-5 rounded-2xl border cursor-pointer transition-all ${
                         isCurrent
-                          ? 'bg-sky-50/50 dark:bg-sky-950/30 border-sky-500 shadow-md ring-1 ring-sky-500'
-                          : 'bg-white dark:bg-slate-800/90 border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'
+                          ? 'bg-white dark:bg-[#23272F] border-[#D4AF37] shadow-warm-md ring-1 ring-[#D4AF37]'
+                          : 'bg-white dark:bg-[#1C1E24] border-[#E2E8F0] dark:border-[#323742] hover:border-[#D4AF37]/50 dark:hover:border-[#2D3748]'
                       }`}
                     >
                       <div className="flex items-center justify-between mb-3">
-                        <span className="w-8 h-8 rounded-lg bg-sky-500/10 text-sky-500 flex items-center justify-center font-bold font-mono text-xs">
+                        <span className="w-8 h-8 rounded-lg bg-[#0A1128]/5 dark:bg-[#0D1B2A] text-[#0A1128] dark:text-[#D4AF37] border border-[#E2E8F0] dark:border-[#323742] flex items-center justify-center font-bold font-mono text-xs">
                           {proj.displayName ? proj.displayName.slice(0, 2).toUpperCase() : 'PR'}
                         </span>
                         <span
                           className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
                             proj.status === 'Healthy'
-                              ? 'bg-emerald-500/10 text-emerald-500'
+                              ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
                               : proj.status === 'Unstable'
-                              ? 'bg-amber-500/10 text-amber-500'
-                              : 'bg-rose-500/10 text-rose-500'
+                              ? 'bg-[#F59E0B]/10 text-[#F59E0B]'
+                              : 'bg-[#E63946]/10 text-[#E63946]'
                           }`}
                         >
                           {proj.status}
                         </span>
                       </div>
-                      <h3 className="font-mono font-bold text-sm text-slate-900 dark:text-white truncate">
+                      <h3 className="font-mono font-bold text-sm text-[#0F172A] dark:text-[#F8FAFC] truncate">
                         {proj.displayName || proj.name}
                       </h3>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                      <p className="text-xs text-[#64748B] dark:text-[#94A3B8] mt-1">
                         {proj.passRate}% builds passing • {proj.lastAuthor}
                       </p>
                     </div>
@@ -185,4 +185,3 @@ export default function App() {
     </div>
   );
 }
-

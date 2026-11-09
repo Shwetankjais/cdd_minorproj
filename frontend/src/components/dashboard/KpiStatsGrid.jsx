@@ -23,8 +23,8 @@ export default function KpiStatsGrid() {
       trend: kpis.totalBuildsTrend,
       isPositive: true,
       icon: Layers,
-      iconBg: 'bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-500',
-      borderAccent: 'border-emerald-500/20',
+      iconBg: 'bg-[#0A1128]/5 dark:bg-[#0D1B2A] text-[#0A1128] dark:text-[#D4AF37]',
+      borderAccent: 'border-l-4 border-l-[#D4AF37]',
     },
     {
       id: 'successful',
@@ -33,8 +33,8 @@ export default function KpiStatsGrid() {
       trend: kpis.successfulBuildsTrend,
       isPositive: true,
       icon: CheckCircle2,
-      iconBg: 'bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-400',
-      borderAccent: 'border-emerald-500/20',
+      iconBg: 'bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400',
+      borderAccent: 'border-l-4 border-l-emerald-500',
     },
     {
       id: 'failed',
@@ -43,8 +43,8 @@ export default function KpiStatsGrid() {
       trend: kpis.failedBuildsTrend,
       isPositive: true, // Lower failed builds is positive
       icon: XCircle,
-      iconBg: 'bg-rose-500/10 dark:bg-rose-500/20 text-rose-500',
-      borderAccent: 'border-rose-500/20',
+      iconBg: 'bg-[#E63946]/10 dark:bg-[#E63946]/20 text-[#E63946]',
+      borderAccent: 'border-l-4 border-l-[#E63946]',
     },
     {
       id: 'rate',
@@ -53,8 +53,8 @@ export default function KpiStatsGrid() {
       trend: kpis.successRateTrend,
       isPositive: true,
       icon: Percent,
-      iconBg: 'bg-blue-500/10 dark:bg-blue-500/20 text-sky-400',
-      borderAccent: 'border-sky-500/20',
+      iconBg: 'bg-[#D4AF37]/15 dark:bg-[#D4AF37]/20 text-[#C5A059] dark:text-[#D4AF37]',
+      borderAccent: 'border-l-4 border-l-[#D4AF37]',
     },
   ];
 
@@ -65,21 +65,21 @@ export default function KpiStatsGrid() {
         return (
           <div
             key={card.id}
-            className={`p-4 rounded-2xl bg-white dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700/80 shadow-sm hover:shadow-md transition-all duration-200 flex items-center justify-between ${card.borderAccent}`}
+            className={`p-4 rounded-2xl bg-white dark:bg-[#1C1E24] border border-[#E2E8F0] dark:border-[#323742] shadow-warm-sm hover:shadow-warm-md transition-all duration-200 flex items-center justify-between ${card.borderAccent}`}
           >
             <div>
-              <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+              <p className="text-xs font-semibold text-[#64748B] dark:text-[#94A3B8] uppercase tracking-wider">
                 {card.title}
               </p>
               <div className="flex items-baseline gap-2 mt-1.5">
-                <span className="text-2xl lg:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+                <span className="text-2xl lg:text-3xl font-extrabold text-[#0F172A] dark:text-[#F8FAFC] tracking-tight">
                   {card.value}
                 </span>
                 <span
-                  className={`inline-flex items-center text-xs font-semibold px-1.5 py-0.5 rounded-full ${
+                  className={`inline-flex items-center text-xs font-semibold px-2 py-0.5 rounded-full ${
                     card.isPositive
-                      ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40'
-                      : 'text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40'
+                      ? 'text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40'
+                      : 'text-[#E63946] bg-[#E63946]/10'
                   }`}
                 >
                   {card.trend.startsWith('+') ? (
@@ -101,4 +101,3 @@ export default function KpiStatsGrid() {
     </div>
   );
 }
-
