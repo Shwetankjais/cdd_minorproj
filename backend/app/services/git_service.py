@@ -16,7 +16,7 @@ class GitError(Exception):
     pass
 
 
-def run_git(path, *args, timeout=15):
+def run_git(path, *args, timeout=15, report_failure=False):
     env = dict(os.environ, GIT_TERMINAL_PROMPT="0", GIT_LITERAL_PATHSPECS="1")
     for key in ("GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE"):
         env.pop(key, None)
@@ -29,7 +29,12 @@ def run_git(path, *args, timeout=15):
     except (OSError, subprocess.TimeoutExpired) as exc:
         raise GitError("Git is unavailable or the command timed out.") from exc
     if result.returncode:
-        # Git diagnostics can include credentials from a configured remote URL.
+        if report_failure:
+            output = (result.stderr + b"\n" + result.stdout).decode(errors="replace").strip()
+            # Hide credentials embedded in remote URLs before returning Git output.
+            output = re.sub(r"(https?://)[^/\s@]+@", r"\1[redacted]@", output)
+            if output:
+                raise GitError(output[:8000])
         raise GitError(f"Git {args[0]} failed. Check repository permissions and Git configuration.")
     return result.stdout
 
@@ -123,9 +128,13 @@ def commit_push(path, files, message, expected_branch=None):
         # --only preserves unrelated changes that someone else has staged.
         run_git(root, "commit", "--only", "-m", message, "--", *selected)
         sha = run_git(root, "rev-parse", "HEAD").strip().decode()
-        result = {"path": str(root), "branch": branch, "commit": sha, "pushed": False}
+        committed = run_git(root, "diff-tree", "--root", "--no-commit-id", "--name-only",
+                            "--no-renames", "-r", "-z", sha)
+        result = {"path": str(root), "branch": branch, "commit": sha, "commit_sha": sha,
+                  "files": [name.decode("utf-8", errors="replace") for name in committed.split(b"\0") if name],
+                  "pushed": False}
         try:
-            run_git(root, "push", "origin", f"{sha}:refs/heads/{branch}", timeout=90)
-        except GitError:
-            return {**result, "message": "Commit saved locally. Check origin access and push the branch from Git."}
+            run_git(root, "push", "origin", f"{sha}:refs/heads/{branch}", timeout=90, report_failure=True)
+        except GitError as exc:
+            return {**result, "message": "Commit saved locally. Push failed.", "push_error": str(exc)}
         return {**result, "pushed": True}

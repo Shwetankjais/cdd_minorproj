@@ -9,7 +9,6 @@ import {
   mockPipelineRuns,
   mockDeployments,
   mockDockerContainers,
-  mockGitStatus,
 } from './mockData';
 
 const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
@@ -68,6 +67,24 @@ async function fetchWithFallback(endpoint, options = {}, fallbackData) {
     clearTimeout(timeoutId);
     return fallbackData;
   }
+}
+
+async function gitRequest(endpoint, { body, token } = {}) {
+  const response = await fetch(`${BASE_URL}${endpoint}`, {
+    method: body ? 'POST' : 'GET',
+    headers: {
+      ...(body && { 'Content-Type': 'application/json' }),
+      ...(token && { Authorization: `Bearer ${token}` }),
+    },
+    ...(body && { body: JSON.stringify(body) }),
+  });
+  const data = await response.json().catch(() => null);
+  if (!response.ok) {
+    const detail = data?.detail;
+    throw new Error(typeof detail === 'string' ? detail : detail ? JSON.stringify(detail) : `Git request failed (HTTP ${response.status}).`);
+  }
+  if (!data) throw new Error('Git API returned an invalid response.');
+  return data;
 }
 
 export const api = {
@@ -399,65 +416,21 @@ export const api = {
    */
   async getGitStatus(path = '') {
     const endpoint = path ? `/git/status?path=${encodeURIComponent(path)}` : '/git/status';
-    const data = await fetchWithFallback(endpoint, { method: 'GET' }, null);
-
-    if (data && Array.isArray(data.files)) {
-      return {
-        currentBranch: data.branch || 'integration/devpulse-dashboard',
-        remoteUrl: 'https://github.com/Shwetankjais/cdd_minorproj',
-        localPath: data.path || '~/Desktop/cdd_minor',
-        files: data.files.map((f) => ({
-          path: f.path,
-          status: f.status || 'M',
-          type: f.status === 'A' ? 'Added' : f.status === 'D' ? 'Deleted' : 'Modified',
-          additions: f.additions || 0,
-          deletions: f.deletions || 0,
-        })),
-      };
-    }
-
-    return mockGitStatus;
+    return gitRequest(endpoint);
   },
 
-  /**
-   * POST /api/git/open-or-clone
-   */
-  async openOrCloneRepo({ repo_url, local_path }) {
-    const body = repo_url ? { repo_url } : { path: local_path };
-    const res = await fetchWithFallback(
-      '/git/open-or-clone',
-      {
-        method: 'POST',
-        body: JSON.stringify(body),
-      },
-      {
-        success: true,
-        message: `Successfully connected to repository ${repo_url || local_path}`,
-        branch: 'integration/devpulse-dashboard',
-      }
-    );
-    return res;
+  async openOrCloneRepo({ repo_url, path, token }) {
+    return gitRequest('/git/open-or-clone', {
+      body: repo_url ? { repo_url } : { path },
+      token,
+    });
   },
 
-  /**
-   * POST /api/git/commit-push
-   */
-  async commitAndPush({ path, files, message, branch = 'integration/devpulse-dashboard' }) {
-    const fileList = Array.isArray(files) ? files : ['frontend/src/App.jsx'];
-    const res = await fetchWithFallback(
-      '/git/commit-push',
-      {
-        method: 'POST',
-        body: JSON.stringify({ path, files: fileList, message, branch }),
-      },
-      {
-        success: true,
-        commitHash: Math.random().toString(16).substring(2, 9),
-        message: `Pushed commit: "${message}" to origin/${branch}`,
-        timestamp: new Date().toISOString(),
-      }
-    );
-    return res;
+  async commitAndPush({ path, files, message, branch, token }) {
+    return gitRequest('/git/commit-push', {
+      body: { path, files, message, branch },
+      token,
+    });
   },
 
   /**
