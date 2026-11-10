@@ -12,15 +12,17 @@ import {
   FolderOpen,
 } from 'lucide-react';
 import { useThemeAndProject } from '../../context/ThemeAndProjectContext';
-import api, { DEFAULT_GIT_WRITE_TOKEN } from '../../services/api';
+import api from '../../services/api';
 
 export default function SourceControlDrawer() {
-  const { isGitDrawerOpen, setIsGitDrawerOpen } = useThemeAndProject();
+  const { isGitDrawerOpen, setIsGitDrawerOpen, user, connectGithub } = useThemeAndProject();
 
   const [repoUrl, setRepoUrl] = useState('');
   const [localPath, setLocalPath] = useState('');
   const [repository, setRepository] = useState(null);
-  const [token, setToken] = useState(DEFAULT_GIT_WRITE_TOKEN);
+  const [patToken, setPatToken] = useState('');
+  const [isLinkingPat, setIsLinkingPat] = useState(false);
+  const [patSuccessMsg, setPatSuccessMsg] = useState('');
   const [commitMessage, setCommitMessage] = useState('');
   const [selected, setSelected] = useState([]);
   const [loadingFiles, setLoadingFiles] = useState(false);
@@ -86,9 +88,37 @@ export default function SourceControlDrawer() {
 
   if (!isGitDrawerOpen) return null;
 
+  async function handleLinkPat(e) {
+    if (e) e.preventDefault();
+    if (!patToken.trim()) return;
+    setIsLinkingPat(true);
+    setStatusError('');
+    setPatSuccessMsg('');
+    try {
+      if (connectGithub) {
+        await connectGithub({
+          github_username: user?.github_username,
+          github_token: patToken.trim(),
+        });
+      } else {
+        await api.connectGithub({
+          github_username: user?.github_username,
+          github_token: patToken.trim(),
+        });
+      }
+      setPatSuccessMsg('GitHub credential linked to session successfully!');
+      setTimeout(() => setPatSuccessMsg(''), 4000);
+      setPatToken('');
+    } catch (err) {
+      setStatusError(err.message || 'Failed to link token.');
+    } finally {
+      setIsLinkingPat(false);
+    }
+  }
+
   async function handleCommitAndPush(event) {
     event.preventDefault();
-    if (busy || !selected.length || !branch || !token.trim()) return;
+    if (busy || !selected.length || !branch) return;
     setIsSubmitting(true);
     setCommitResult(null);
     try {
@@ -97,7 +127,6 @@ export default function SourceControlDrawer() {
         files: selected,
         message: commitMessage.trim() || defaultMessage,
         branch,
-        token: token.trim(),
       });
       setCommitResult(result);
       await loadGitStatus(repository.path);
@@ -117,7 +146,6 @@ export default function SourceControlDrawer() {
       const result = await api.openOrCloneRepo({
         repo_url: repoUrl.trim(),
         path: localPath.trim() || repository?.path,
-        token: token.trim(),
       });
       setRepository(result);
       setLocalPath(result.path);
@@ -192,12 +220,12 @@ export default function SourceControlDrawer() {
             <div className="flex items-center justify-between text-[11px]">
               <span className="text-[#64748B] dark:text-[#94A3B8] font-sans">Remote:</span>
               <a
-                href="https://github.com/Shwetankjais/cdd_minorproj"
+                href={user?.githubRepo ? `https://github.com/${user.githubRepo}` : "https://github.com/Shwetankjais/cdd_minorproj"}
                 target="_blank"
                 rel="noreferrer"
                 className="text-[#0F172A] dark:text-[#F8FAFC] font-mono hover:text-[#D4AF37] flex items-center gap-1"
               >
-                cdd_minorproj <ExternalLink className="w-3 h-3" />
+                {user?.githubRepo ? user.githubRepo.split('/')[1] : 'cdd_minorproj'} <ExternalLink className="w-3 h-3" />
               </a>
             </div>
           </div>
@@ -244,18 +272,38 @@ export default function SourceControlDrawer() {
             </div>
             {statusError && <p role="alert" className="text-[#E63946]">{statusError}</p>}
             <details>
-              <summary className="cursor-pointer font-sans text-[#64748B] dark:text-[#94A3B8]">Advanced Auth</summary>
-              <label className="mt-2 block font-sans">
-                Git write token
-                <input
-                  type="password"
-                  autoComplete="off"
-                  value={token}
-                  onChange={(event) => setToken(event.target.value)}
-                  placeholder="GIT_WRITE_TOKEN"
-                  className="mt-1 w-full px-3 py-2 rounded-lg bg-[#FAF8F5] dark:bg-[#0B0E14] border border-[#E2E8F0] dark:border-[#2A303C]"
-                />
-              </label>
+              <summary className="cursor-pointer font-sans text-[#64748B] dark:text-[#94A3B8] font-semibold text-[11px]">
+                Link GitHub Personal Access Token (PAT)
+              </summary>
+              <div className="mt-2 space-y-1.5 p-3 rounded-lg bg-[#FAF8F5] dark:bg-[#0B0E14] border border-[#E2E8F0] dark:border-[#2A303C]">
+                <p className="text-[11px] font-sans text-[#64748B] dark:text-[#94A3B8]">
+                  Link your personal access token to your session for private repo access and push authorization:
+                </p>
+                <div className="flex gap-2">
+                  <input
+                    type="password"
+                    autoComplete="off"
+                    value={patToken}
+                    onChange={(event) => setPatToken(event.target.value)}
+                    placeholder="ghp_xxxxxxxxxxxx"
+                    className="flex-1 px-3 py-1.5 rounded-lg bg-white dark:bg-[#181C24] border border-[#E2E8F0] dark:border-[#2A303C] text-xs font-mono text-[#0F172A] dark:text-[#F8FAFC] outline-none focus:border-[#D4AF37]"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleLinkPat}
+                    disabled={isLinkingPat || !patToken.trim()}
+                    className="px-3 py-1.5 rounded-lg bg-[#0A1128] dark:bg-[#1E232E] text-[#D4AF37] text-xs font-semibold border border-[#D4AF37]/40 hover:bg-[#142238] dark:hover:bg-[#252B38] transition-colors cursor-pointer disabled:opacity-50"
+                  >
+                    {isLinkingPat ? 'Linking...' : 'Link'}
+                  </button>
+                </div>
+                {patSuccessMsg && (
+                  <p className="text-emerald-500 text-[11px] font-sans flex items-center gap-1 mt-1">
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    <span>{patSuccessMsg}</span>
+                  </p>
+                )}
+              </div>
             </details>
           </div>
 
@@ -381,7 +429,7 @@ export default function SourceControlDrawer() {
             {/* 1-Click Commit & Push Button (Primary Action - Crimson Red) */}
             <button
               type="submit"
-              disabled={busy || !selected.length || !branch || !token.trim()}
+              disabled={busy || !selected.length || !branch}
               className="w-full py-2.5 px-4 rounded-xl font-bold text-white bg-gradient-to-r from-[#E63946] to-[#DC2626] hover:from-[#DC2626] hover:to-[#B91C1C] shadow-md shadow-[#E63946]/20 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isSubmitting ? (

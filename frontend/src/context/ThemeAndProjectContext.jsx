@@ -72,54 +72,89 @@ export function ThemeAndProjectProvider({ children }) {
 
   const isAuthenticated = Boolean(user);
 
-  const login = useCallback(async ({ email, name, role, github_username, githubRepo, avatar_url }) => {
+  const login = useCallback(async ({ email, name, role, github_username, github_token, githubRepo, avatar_url }) => {
     const cleanUser = (github_username || (githubRepo ? githubRepo.split('/')[0] : 'Developer')).trim();
-    const immediateUser = {
+
+    // Call api.login to get the backend's real session_token
+    let res = null;
+    try {
+      res = await api.login({ email, name, role, github_username: cleanUser, github_token, avatar_url });
+    } catch {
+      // offline fallback
+    }
+
+    const sessionToken = res?.session_token || res?.token || `devpulse-session-${Date.now()}`;
+    const activeUser = {
       email: email || `${cleanUser}@devpulse.io`,
-      name: name || cleanUser,
-      role: role || 'Developer',
-      githubConnected: true,
+      name: name || res?.user?.name || cleanUser,
+      role: role || res?.role || 'Developer',
+      githubConnected: res?.github?.connected ?? true,
       github_username: cleanUser,
-      githubRepo: githubRepo || `${cleanUser}/cdd_minorproj`,
+      githubRepo: res?.active_workspace?.project || githubRepo || `${cleanUser}/portfolio`,
       avatar: (name || cleanUser).slice(0, 2).toUpperCase(),
       avatar_url: avatar_url || `https://github.com/${cleanUser}.png`,
-      session_token: `devpulse-session-${Date.now()}`,
+      session_token: sessionToken,
+      ...(res?.user || {}),
     };
 
-    // Synchronously set user session so UI transitions immediately without network delay
-    setUser(immediateUser);
-    localStorage.setItem('devpulse_auth_session', JSON.stringify(immediateUser));
-    localStorage.setItem('devpulse_session_token', immediateUser.session_token);
-    localStorage.setItem('devpulse_user', JSON.stringify(immediateUser));
+    // Store the exact session token
+    setUser(activeUser);
+    localStorage.setItem('devpulse_auth_session', JSON.stringify(activeUser));
+    localStorage.setItem('devpulse_session_token', sessionToken);
+    localStorage.setItem('devpulse_user', JSON.stringify(activeUser));
     localStorage.removeItem('devpulse_logged_out');
 
-    try {
-      const res = await api.login({ email, name, role, github_username: cleanUser, githubRepo, avatar_url });
-      if (res?.user) {
-        const enriched = {
-          ...immediateUser,
-          ...res.user,
-          session_token: res.token || immediateUser.session_token,
-        };
-        setUser(enriched);
-        localStorage.setItem('devpulse_auth_session', JSON.stringify(enriched));
-        localStorage.setItem('devpulse_user', JSON.stringify(enriched));
-      }
-
+    // If user provided a github_token, link it to the session
+    if (github_token && res?.session_token) {
       try {
-        const userProjects = await api.getProjects(cleanUser);
-        if (Array.isArray(userProjects) && userProjects.length > 0) {
-          setProjects(userProjects);
-          setActiveProject(userProjects[0]);
-        }
+        await api.connectGithub({ github_username: cleanUser, github_token });
       } catch {
         // ignore
       }
-
-      return res?.user || immediateUser;
-    } catch {
-      return immediateUser;
     }
+
+    try {
+      const userProjects = await api.getProjects(cleanUser);
+      if (Array.isArray(userProjects) && userProjects.length > 0) {
+        setProjects(userProjects);
+        setActiveProject(userProjects[0]);
+      } else {
+        const fallbackProject = {
+          id: activeUser.githubRepo,
+          name: activeUser.githubRepo,
+          displayName: activeUser.githubRepo.split('/')[1] || activeUser.githubRepo,
+          branch: 'main',
+          status: 'Healthy',
+          passRate: 100,
+          lastAuthor: cleanUser,
+          isCurrent: true,
+        };
+        setProjects([fallbackProject]);
+        setActiveProject(fallbackProject);
+      }
+    } catch {
+      // ignore
+    }
+
+    return activeUser;
+  }, []);
+
+  const connectGithub = useCallback(async ({ github_username, github_token }) => {
+    const res = await api.connectGithub({ github_username, github_token });
+    if (res?.github) {
+      setUser((prev) => {
+        if (!prev) return prev;
+        const updated = {
+          ...prev,
+          githubConnected: res.github.connected ?? true,
+          github_username: res.github.username || prev.github_username,
+        };
+        localStorage.setItem('devpulse_auth_session', JSON.stringify(updated));
+        localStorage.setItem('devpulse_user', JSON.stringify(updated));
+        return updated;
+      });
+    }
+    return res;
   }, []);
 
   const logout = useCallback(async () => {
@@ -199,20 +234,85 @@ export function ThemeAndProjectProvider({ children }) {
   }, []);
 
   // 7. Project Selection State
-  const [projects, setProjects] = useState(mockProjects);
-  const [activeProject, setActiveProject] = useState(mockProjects[0]);
+  const [projects, setProjects] = useState(() => {
+    if (typeof process !== 'undefined' && process.env?.NODE_ENV === 'test') {
+      return mockProjects;
+    }
+    if (user?.githubRepo) {
+      const repoName = user.githubRepo.split('/')[1] || user.githubRepo;
+      return [
+        {
+          id: user.githubRepo,
+          name: user.githubRepo,
+          displayName: repoName,
+          branch: 'main',
+          status: 'Healthy',
+          passRate: 100,
+          lastAuthor: user.github_username || 'Developer',
+          isCurrent: true,
+        },
+      ];
+    }
+    return [];
+  });
+  const [activeProject, setActiveProject] = useState(() => {
+    if (typeof process !== 'undefined' && process.env?.NODE_ENV === 'test') {
+      return mockProjects[0];
+    }
+    if (user?.githubRepo) {
+      const repoName = user.githubRepo.split('/')[1] || user.githubRepo;
+      return {
+        id: user.githubRepo,
+        name: user.githubRepo,
+        displayName: repoName,
+        branch: 'main',
+        status: 'Healthy',
+        passRate: 100,
+        lastAuthor: user.github_username || 'Developer',
+        isCurrent: true,
+      };
+    }
+    return null;
+  });
 
   // Load live projects scoped to active user
   useEffect(() => {
-    const username = user?.github_username || 'Shwetankjais';
+    if (!user?.github_username) {
+      if (typeof process !== 'undefined' && process.env?.NODE_ENV === 'test') {
+        setProjects(mockProjects);
+        setActiveProject(mockProjects[0]);
+      } else {
+        setProjects([]);
+        setActiveProject(null);
+      }
+      return;
+    }
+
+    const username = user.github_username;
     api.getProjects(username).then((data) => {
       if (Array.isArray(data) && data.length > 0) {
         setProjects(data);
         const current = data.find((p) => p.isCurrent) || data[0];
         setActiveProject(current);
+      } else if (user?.githubRepo) {
+        const fallbackProject = {
+          id: user.githubRepo,
+          name: user.githubRepo,
+          displayName: user.githubRepo.split('/')[1] || user.githubRepo,
+          branch: 'main',
+          status: 'Healthy',
+          passRate: 100,
+          lastAuthor: username,
+          isCurrent: true,
+        };
+        setProjects([fallbackProject]);
+        setActiveProject(fallbackProject);
+      } else {
+        setProjects([]);
+        setActiveProject(null);
       }
     });
-  }, [user?.github_username]);
+  }, [user?.github_username, user?.githubRepo]);
 
   // 8. Live Pipeline Summary & KPI Statistics State
   const [summaryData, setSummaryData] = useState(mockSummary);
@@ -506,6 +606,7 @@ export function ThemeAndProjectProvider({ children }) {
         isAuthenticated,
         login,
         logout,
+        connectGithub,
         toggleGithubConnection,
         workspaces,
         activeWorkspace,

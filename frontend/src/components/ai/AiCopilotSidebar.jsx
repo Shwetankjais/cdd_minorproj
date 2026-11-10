@@ -196,7 +196,7 @@ export default function AiCopilotSidebar() {
 
             <div>
               <h2 className="text-sm font-semibold tracking-tight text-[#0F172A] dark:text-[#F8FAFC]">
-                Good to see you, {user?.name ? user.name.split(' ')[0] : 'Shwetank'}.
+                Good to see you, {user?.name ? user.name.split(' ')[0] : (user?.github_username || 'Developer')}.
               </h2>
               <p className="text-xs text-[#64748B] dark:text-[#94A3B8] font-mono mt-0.5">What would you like to inspect?</p>
             </div>

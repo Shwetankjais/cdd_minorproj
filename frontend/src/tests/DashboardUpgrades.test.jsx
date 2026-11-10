@@ -92,4 +92,33 @@ describe('DevPulse Upgrades: Auth Gate, Workspace Hub & AI Copilot', () => {
       expect(session).toBeTruthy();
     });
   });
+
+  it('strictly isolates repositories without cross-account leakage for non-Shwetank accounts', async () => {
+    const { api } = await import('../services/api');
+
+    // Test a non-author account (e.g. friend or octocat)
+    const octocatProjects = await api.getProjects('octocat');
+    expect(Array.isArray(octocatProjects)).toBe(true);
+
+    // Ensure octocat's repository list contains ZERO occurrences of Shwetankjais repos
+    const hasShwetankLeak = octocatProjects.some(
+      (p) => (p.id || '').includes('Shwetankjais') || (p.lastAuthor || '').includes('Shwetank')
+    );
+    expect(hasShwetankLeak).toBe(false);
+
+    // Ensure no fabricated mock repos like DevOps_Lab or AirScope_Delhi leak to octocat
+    const hasFabricatedLeak = octocatProjects.some(
+      (p) => (p.displayName === 'DevOps_Lab' && p.id?.startsWith('octocat/')) ||
+             (p.displayName === 'AirScope_Delhi' && p.id?.startsWith('octocat/'))
+    );
+    expect(hasFabricatedLeak).toBe(false);
+  });
+
+  it('stores session_token and uses it for Authorization Bearer', async () => {
+    const { api, getAuthHeaders } = await import('../services/api');
+
+    localStorage.setItem('devpulse_session_token', 'real-backend-session-token-xyz');
+    const headers = getAuthHeaders();
+    expect(headers['Authorization']).toBe('Bearer real-backend-session-token-xyz');
+  });
 });

@@ -24,6 +24,7 @@ export default function AuthLoginView() {
 
   // Inputs are blank by default so visitors connect their OWN account
   const [githubUsername, setGithubUsername] = useState('');
+  const [githubToken, setGithubToken] = useState('');
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
   const [role, setRole] = useState('Developer');
@@ -113,6 +114,7 @@ export default function AuthLoginView() {
         name: name.trim() || activeProfile?.name || cleanUser,
         role: role || 'Developer',
         github_username: cleanUser,
+        github_token: githubToken.trim() || undefined,
         githubRepo: githubRepo.trim() || `${cleanUser}/portfolio`,
         avatar_url: activeProfile?.avatar_url || `https://github.com/${cleanUser}.png`,
       };
@@ -286,6 +288,24 @@ export default function AuthLoginView() {
                       className="w-full px-3 py-2 rounded-lg bg-[#0B0E14] border border-[#2A303C] text-xs font-sans text-[#F8FAFC] focus:border-[#D4AF37] outline-none"
                     />
                   </div>
+                </div>
+
+                {/* Optional GitHub Token / PAT */}
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-[10px] font-sans font-semibold text-[#94A3B8] uppercase tracking-wider">
+                      GitHub Personal Access Token (PAT)
+                    </label>
+                    <span className="text-[10px] font-mono text-[#64748B]">optional</span>
+                  </div>
+                  <input
+                    type="password"
+                    autoComplete="off"
+                    value={githubToken}
+                    onChange={(e) => setGithubToken(e.target.value)}
+                    placeholder="ghp_xxxxxxxxxxxx (for private repos & git push)"
+                    className="w-full px-3 py-2 rounded-lg bg-[#0B0E14] border border-[#2A303C] text-xs font-mono text-[#F8FAFC] focus:border-[#D4AF37] outline-none"
+                  />
                 </div>
 
                 {/* Team Role Pill Selector */}

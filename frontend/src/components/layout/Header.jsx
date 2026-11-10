@@ -224,34 +224,40 @@ export default function Header() {
                   Select Repository
                 </div>
                 <div className="max-h-72 overflow-y-auto divide-y divide-[#E2E8F0]/40 dark:divide-[#2A303C]/60">
-                  {projects.map((proj) => {
-                    const isSelected = proj.id === activeProject.id || proj.displayName === activeProject.displayName;
-                    const authorName = (!proj.lastAuthor || proj.lastAuthor === 'Unavailable') ? 'Shwetank Jaiswal' : proj.lastAuthor;
-                    return (
-                      <button
-                        key={proj.id || proj.displayName}
-                        onClick={() => {
-                          setActiveProject(proj);
-                          setProjectDropdownOpen(false);
-                        }}
-                        className={`w-full px-3.5 py-2 text-left text-xs flex items-center justify-between transition-colors ${
-                          isSelected
-                            ? 'bg-[#FAF8F5] dark:bg-[#1E232E] text-[#0A1128] dark:text-[#D4AF37] font-semibold border-l-2 border-[#D4AF37]'
-                            : 'hover:bg-[#FAF8F5] dark:hover:bg-[#1E232E]/60 text-[#0F172A] dark:text-[#F8FAFC]'
-                        }`}
-                      >
-                        <div className="truncate mr-2">
-                          <p className="font-semibold text-xs truncate text-[#0F172A] dark:text-[#F8FAFC]">
-                            {proj.displayName}
-                          </p>
-                          <p className="text-[10px] text-[#64748B] dark:text-[#94A3B8] font-normal mt-0.5">
-                            {proj.passRate}% passing • {authorName}
-                          </p>
-                        </div>
-                        {isSelected && <Check className="w-3.5 h-3.5 flex-shrink-0 text-[#D4AF37]" />}
-                      </button>
-                    );
-                  })}
+                  {projects.length === 0 ? (
+                    <div className="px-3.5 py-3 text-center text-[11px] text-[#64748B] dark:text-[#94A3B8]">
+                      No repositories linked yet.
+                    </div>
+                  ) : (
+                    projects.map((proj) => {
+                      const isSelected = activeProject && (proj.id === activeProject.id || proj.displayName === activeProject.displayName);
+                      const authorName = (!proj.lastAuthor || proj.lastAuthor === 'Unavailable') ? (user?.name || user?.github_username || 'Developer') : proj.lastAuthor;
+                      return (
+                        <button
+                          key={proj.id || proj.displayName}
+                          onClick={() => {
+                            setActiveProject(proj);
+                            setProjectDropdownOpen(false);
+                          }}
+                          className={`w-full px-3.5 py-2 text-left text-xs flex items-center justify-between transition-colors ${
+                            isSelected
+                              ? 'bg-[#FAF8F5] dark:bg-[#1E232E] text-[#0A1128] dark:text-[#D4AF37] font-semibold border-l-2 border-[#D4AF37]'
+                              : 'hover:bg-[#FAF8F5] dark:hover:bg-[#1E232E]/60 text-[#0F172A] dark:text-[#F8FAFC]'
+                          }`}
+                        >
+                          <div className="truncate mr-2">
+                            <p className="font-semibold text-xs truncate text-[#0F172A] dark:text-[#F8FAFC]">
+                              {proj.displayName}
+                            </p>
+                            <p className="text-[10px] text-[#64748B] dark:text-[#94A3B8] font-normal mt-0.5">
+                              {proj.passRate}% passing • {authorName}
+                            </p>
+                          </div>
+                          {isSelected && <Check className="w-3.5 h-3.5 flex-shrink-0 text-[#D4AF37]" />}
+                        </button>
+                      );
+                    })
+                  )}
                 </div>
               </div>
             )}

@@ -33,9 +33,13 @@ export default function WorkspaceHubView() {
   const [showOpenModal, setShowOpenModal] = useState(false);
   const [showCloneModal, setShowCloneModal] = useState(false);
   const [folderPath, setFolderPath] = useState('~/Desktop/cdd_minor');
-  const [cloneUrl, setCloneUrl] = useState('https://github.com/Shwetankjais/cdd_minorproj.git');
+  const [cloneUrl, setCloneUrl] = useState(() =>
+    user?.githubRepo ? `https://github.com/${user.githubRepo}.git` : 'https://github.com/Shwetankjais/cdd_minorproj.git'
+  );
   const [cloneBranch, setCloneBranch] = useState('main');
-  const [clonePath, setClonePath] = useState('~/workspace/cdd_minorproj');
+  const [clonePath, setClonePath] = useState(() =>
+    user?.github_username ? `~/workspace/${user.github_username}` : '~/workspace/cdd_minorproj'
+  );
   const [isProcessing, setIsProcessing] = useState(false);
   const [feedbackMsg, setFeedbackMsg] = useState(null);
   const [showAllWorkspaces, setShowAllWorkspaces] = useState(false);
@@ -279,7 +283,7 @@ export default function WorkspaceHubView() {
             <div>
               <p className="text-xs font-bold text-[#0F172A] dark:text-[#F8FAFC]">GitHub Repository Integration</p>
               <p className="text-[11px] font-mono text-[#64748B] dark:text-[#94A3B8]">
-                {user?.githubRepo || 'Shwetankjais/cdd_minorproj'}
+                {user?.githubRepo || (user?.github_username ? `${user.github_username}/portfolio` : 'Shwetankjais/cdd_minorproj')}
               </p>
             </div>
           </div>
