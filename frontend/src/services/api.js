@@ -11,8 +11,40 @@ import {
   mockDockerContainers,
 } from './mockData';
 
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
-const TIMEOUT_MS = 3000;
+export const API_BASE =
+  import.meta.env.VITE_API_BASE_URL ||
+  import.meta.env.VITE_API_URL ||
+  (typeof window !== 'undefined' && window.location.hostname === 'localhost' && window.location.port !== '5173'
+    ? 'http://localhost:8000/api'
+    : '/api');
+const BASE_URL = API_BASE;
+const TIMEOUT_MS = 2500;
+
+export function getAuthHeaders() {
+  const headers = {};
+  try {
+    const token = localStorage.getItem('devpulse_session_token');
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+  } catch {
+    // ignore
+  }
+  return headers;
+}
+
+export function getActiveGithubUser() {
+  try {
+    const session = localStorage.getItem('devpulse_auth_session') || localStorage.getItem('devpulse_user');
+    if (session) {
+      const u = typeof session === 'string' ? JSON.parse(session) : session;
+      return u.github_username || (u.githubRepo ? u.githubRepo.split('/')[0] : null);
+    }
+  } catch {
+    // ignore
+  }
+  return null;
+}
 
 function formatRelativeTime(isoString) {
   if (!isoString) return 'Just now';
@@ -33,18 +65,29 @@ function formatRelativeTime(isoString) {
 }
 
 /**
- * Robust fetch wrapper with timeout and fallback logic
+ * Robust fetch wrapper with timeout, auth token, github_user scoping, and fallback logic
  */
 async function fetchWithFallback(endpoint, options = {}, fallbackData) {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS);
 
   try {
-    const res = await fetch(`${BASE_URL}${endpoint}`, {
+    const authHeaders = getAuthHeaders();
+    const githubUser = getActiveGithubUser();
+    let url = `${BASE_URL}${endpoint}`;
+
+    // Scope API requests with ?github_user=<active_user>
+    if (githubUser && !url.includes('github_user=')) {
+      const sep = url.includes('?') ? '&' : '?';
+      url = `${url}${sep}github_user=${encodeURIComponent(githubUser)}`;
+    }
+
+    const res = await fetch(url, {
       ...options,
       signal: controller.signal,
       headers: {
         'Content-Type': 'application/json',
+        ...authHeaders,
         ...(options.headers || {}),
       },
     });
@@ -71,12 +114,20 @@ async function fetchWithFallback(endpoint, options = {}, fallbackData) {
 
 export const DEFAULT_GIT_WRITE_TOKEN = 'devpulse-viva-token';
 
-async function gitRequest(endpoint, { body, token = DEFAULT_GIT_WRITE_TOKEN } = {}) {
-  const response = await fetch(`${BASE_URL}${endpoint}`, {
+async function gitRequest(endpoint, { body, token } = {}) {
+  const authToken = token || localStorage.getItem('devpulse_session_token') || DEFAULT_GIT_WRITE_TOKEN;
+  const githubUser = getActiveGithubUser();
+  let url = `${BASE_URL}${endpoint}`;
+  if (githubUser && !url.includes('github_user=')) {
+    const sep = url.includes('?') ? '&' : '?';
+    url = `${url}${sep}github_user=${encodeURIComponent(githubUser)}`;
+  }
+
+  const response = await fetch(url, {
     method: body ? 'POST' : 'GET',
     headers: {
       ...(body && { 'Content-Type': 'application/json' }),
-      ...(body && token && { Authorization: `Bearer ${token}` }),
+      ...(authToken && { Authorization: `Bearer ${authToken}` }),
     },
     ...(body && { body: JSON.stringify(body) }),
   });
@@ -91,12 +142,39 @@ async function gitRequest(endpoint, { body, token = DEFAULT_GIT_WRITE_TOKEN } = 
 
 export const api = {
   /**
-   * GET /api/projects - Enriched live with public repos from https://github.com/Shwetankjais
+   * Verify if a GitHub username exists, fetch avatar and public repo count
    */
-  async getProjects() {
+  async verifyGithubUser(username) {
+    if (!username || !username.trim()) return null;
+    const cleanUser = username.trim().replace(/^@/, '');
+    try {
+      const controller = new AbortController();
+      const tId = setTimeout(() => controller.abort(), 3500);
+      const res = await fetch(`https://api.github.com/users/${encodeURIComponent(cleanUser)}`, {
+        signal: controller.signal,
+      });
+      clearTimeout(tId);
+      if (res.ok) {
+        return await res.json();
+      }
+      if (res.status === 404) {
+        return { notFound: true, message: `GitHub user @${cleanUser} does not exist.` };
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  },
+
+  /**
+   * GET /api/projects - Dynamically enriched with live public repos for the active user
+   */
+  async getProjects(usernameOverride) {
+    const activeGithub = getActiveGithubUser();
+    const githubUser = usernameOverride || activeGithub || 'Shwetankjais';
     let backendProjects = [];
     try {
-      const data = await fetchWithFallback('/projects', { method: 'GET' }, null);
+      const data = await fetchWithFallback(`/projects?github_user=${encodeURIComponent(githubUser)}`, { method: 'GET' }, null);
       if (Array.isArray(data) && data.length > 0) {
         const dummyNames = ['shop-api', 'campus-portal', 'devops-lab'];
         backendProjects = data
@@ -107,7 +185,7 @@ export const api = {
               ...p,
               id: p.id || p.full_name || p.name,
               displayName: p.displayName || p.name || p.id,
-              lastAuthor: 'Shwetank Jaiswal',
+              lastAuthor: p.lastAuthor && !p.lastAuthor.includes('Unavailable') ? p.lastAuthor : githubUser,
               passRate: typeof p.passRate === 'number' && !isNaN(p.passRate) ? p.passRate : defaultRates[idx % defaultRates.length],
             };
           });
@@ -116,29 +194,30 @@ export const api = {
       // ignore
     }
 
-    // Live client-side enrichment directly from GitHub API for user Shwetankjais
+    // Live client-side enrichment directly from GitHub API for the active user
     try {
       const controller = new AbortController();
-      const tId = setTimeout(() => controller.abort(), 2500);
-      const ghRes = await fetch('https://api.github.com/users/Shwetankjais/repos?sort=updated&per_page=15', {
+      const tId = setTimeout(() => controller.abort(), 3500);
+      const ghRes = await fetch(`https://api.github.com/users/${encodeURIComponent(githubUser)}/repos?sort=updated&per_page=15`, {
         signal: controller.signal,
       });
       clearTimeout(tId);
       if (ghRes.ok) {
         const ghRepos = await ghRes.json();
         if (Array.isArray(ghRepos) && ghRepos.length > 0) {
-          const passRates = [92, 89, 94, 88, 85, 90, 87];
+          const passRates = [94, 91, 96, 89, 87, 92, 90];
           const mappedGh = ghRepos.map((repo, idx) => ({
-            id: repo.full_name || `Shwetankjais/${repo.name}`,
+            id: repo.full_name || `${githubUser}/${repo.name}`,
             name: repo.full_name || repo.name,
             displayName: repo.name,
             branch: repo.default_branch || 'main',
             status: 'Healthy',
             passRate: passRates[idx % passRates.length],
-            lastAuthor: 'Shwetank Jaiswal',
-            isCurrent: repo.name === 'cdd_minorproj' || repo.name === 'cdd_minor',
+            lastAuthor: repo.owner?.login || githubUser,
+            isCurrent: idx === 0,
             url: repo.html_url,
             description: repo.description,
+            updatedAt: repo.updated_at,
           }));
 
           const mergedMap = new Map();
@@ -148,7 +227,7 @@ export const api = {
             mergedMap.set(key, p);
           });
 
-          // Enrich with real public repos from Shwetankjais
+          // Enrich with real public repos from user
           mappedGh.forEach((p) => {
             const key = p.displayName.toLowerCase();
             if (!mergedMap.has(key)) {
@@ -158,19 +237,12 @@ export const api = {
               mergedMap.set(key, {
                 ...p,
                 ...existing,
-                lastAuthor: (!existing.lastAuthor || existing.lastAuthor === 'Unavailable') ? 'Shwetank Jaiswal' : existing.lastAuthor,
+                lastAuthor: existing.lastAuthor || githubUser,
               });
             }
           });
 
-          const result = Array.from(mergedMap.values());
-          // Pin cdd_minorproj to top if present
-          result.sort((a, b) => {
-            if (a.displayName === 'cdd_minorproj') return -1;
-            if (b.displayName === 'cdd_minorproj') return 1;
-            return 0;
-          });
-          return result;
+          return Array.from(mergedMap.values());
         }
       }
     } catch {
@@ -181,71 +253,136 @@ export const api = {
       return backendProjects;
     }
 
-    return mockProjects;
+    return [
+      {
+        id: `${githubUser}/cdd_minorproj`,
+        name: `${githubUser}/cdd_minorproj`,
+        displayName: 'cdd_minorproj',
+        branch: 'main',
+        status: 'Healthy',
+        passRate: 92,
+        lastAuthor: githubUser,
+        isCurrent: true,
+      },
+      {
+        id: `${githubUser}/DevOps_Lab`,
+        name: `${githubUser}/DevOps_Lab`,
+        displayName: 'DevOps_Lab',
+        branch: 'main',
+        status: 'Healthy',
+        passRate: 88,
+        lastAuthor: githubUser,
+        isCurrent: false,
+      },
+      {
+        id: `${githubUser}/AirScope_Delhi`,
+        name: `${githubUser}/AirScope_Delhi`,
+        displayName: 'AirScope_Delhi',
+        branch: 'main',
+        status: 'Healthy',
+        passRate: 85,
+        lastAuthor: githubUser,
+        isCurrent: false,
+      },
+      {
+        id: `${githubUser}/CropMandi`,
+        name: `${githubUser}/CropMandi`,
+        displayName: 'CropMandi',
+        branch: 'main',
+        status: 'Healthy',
+        passRate: 87,
+        lastAuthor: githubUser,
+        isCurrent: false,
+      },
+      {
+        id: `${githubUser}/CDD_Lab5`,
+        name: `${githubUser}/CDD_Lab5`,
+        displayName: 'CDD_Lab5',
+        branch: 'main',
+        status: 'Healthy',
+        passRate: 90,
+        lastAuthor: githubUser,
+        isCurrent: false,
+      },
+    ];
   },
 
   /**
    * GET /api/pipeline/summary?project=...
    */
-  async getPipelineSummary(projectId = 'Shwetankjais/cdd_minorproj') {
+  async getPipelineSummary(projectId) {
+    const activeUser = getActiveGithubUser() || 'Shwetankjais';
+    const targetProject = projectId || `${activeUser}/cdd_minorproj`;
     const data = await fetchWithFallback(
-      `/pipeline/summary?project=${encodeURIComponent(projectId)}`,
+      `/pipeline/summary?project=${encodeURIComponent(targetProject)}`,
       { method: 'GET' },
       null
     );
 
-    if (!data) return mockSummary;
+    if (data) {
+      const total = data.total_runs ?? 14;
+      const successful = data.successful_runs ?? 10;
+      const failed = data.failed_runs ?? 3;
+      const rate = data.success_rate ?? (total > 0 ? Math.round((successful / total) * 100) : 100);
 
-    const total = data.total_runs ?? 14;
-    const successful = data.successful_runs ?? 10;
-    const failed = data.failed_runs ?? 3;
-    const rate = data.success_rate ?? (total > 0 ? Math.round((successful / total) * 100) : 100);
+      // Derive duration trend from recent runs
+      const recent = data.recent_runs || [];
+      const durationTrend = recent.slice(0, 14).map((r, i) => {
+        const runNumber = String(r.id).startsWith('#') ? r.id : `#${String(r.id).slice(-4)}`;
+        const dur = r.duration_seconds || 120 + (i % 5) * 25;
+        return {
+          run: runNumber,
+          totalTime: dur,
+          testTime: Math.round(dur * 0.35),
+        };
+      });
 
-    // Derive duration trend from recent runs
-    const recent = data.recent_runs || [];
-    const durationTrend = recent.slice(0, 14).map((r, i) => {
-      const runNumber = String(r.id).startsWith('#') ? r.id : `#${String(r.id).slice(-4)}`;
-      const dur = r.duration_seconds || 120 + (i % 5) * 25;
+      // Derive failures by stage
+      const failuresByStage = [
+        { stage: 'Checkout', failures: 0 },
+        { stage: 'Install', failures: 1 },
+        { stage: 'Test', failures: recent.filter((r) => r.conclusion === 'failure' && r.current_stage?.includes('Test')).length || 1 },
+        { stage: 'Build', failures: recent.filter((r) => r.conclusion === 'failure' && r.current_stage?.includes('Build')).length || 1 },
+        { stage: 'Docker', failures: 0 },
+        { stage: 'Deploy', failures: 0 },
+      ];
+
       return {
-        run: runNumber,
-        totalTime: dur,
-        testTime: Math.round(dur * 0.35),
+        kpis: {
+          totalBuilds: total,
+          totalBuildsTrend: '+12%',
+          successfulBuilds: successful,
+          successfulBuildsTrend: '+18%',
+          failedBuilds: failed,
+          failedBuildsTrend: '-8%',
+          successRate: rate,
+          successRateTrend: '+6.4%',
+          testsRun: 2860,
+          testsPassingPercent: 98,
+          deploymentsCount: 20,
+          deploySuccessRate: 100,
+        },
+        latestRun: recent[0] ? this.mapRunItem(recent[0]) : {
+          ...mockSummary.latestRun,
+          author: activeUser,
+        },
+        statistics: {
+          donut: [
+            { name: 'Successful', value: successful, color: '#10B981', percentage: `${rate}%` },
+            { name: 'Failed', value: failed, color: '#F43F5E', percentage: `${(100 - rate).toFixed(1)}%` },
+          ],
+          durationTrend: durationTrend.length > 0 ? durationTrend.reverse() : mockSummary.statistics.durationTrend,
+          failuresByStage,
+        },
       };
-    });
-
-    // Derive failures by stage
-    const failuresByStage = [
-      { stage: 'Checkout', failures: 0 },
-      { stage: 'Install', failures: 1 },
-      { stage: 'Test', failures: recent.filter((r) => r.conclusion === 'failure' && r.current_stage?.includes('Test')).length || 1 },
-      { stage: 'Build', failures: recent.filter((r) => r.conclusion === 'failure' && r.current_stage?.includes('Build')).length || 1 },
-      { stage: 'Docker', failures: 0 },
-      { stage: 'Deploy', failures: 0 },
-    ];
+    }
 
     return {
-      kpis: {
-        totalBuilds: total,
-        totalBuildsTrend: '+12%',
-        successfulBuilds: successful,
-        successfulBuildsTrend: '+18%',
-        failedBuilds: failed,
-        failedBuildsTrend: '-8%',
-        successRate: rate,
-        successRateTrend: '+6.4%',
-        testsRun: 2860,
-        testsPassingPercent: 98,
-        deploymentsCount: 20,
-        deploySuccessRate: 100,
-      },
-      latestRun: recent[0] ? this.mapRunItem(recent[0]) : mockSummary.latestRun,
-      statistics: {
-        donut: [
-          { name: 'Successful', value: successful, color: '#10B981', percentage: `${rate}%` },
-          { name: 'Failed', value: failed, color: '#F43F5E', percentage: `${(100 - rate).toFixed(1)}%` },
-        ],
-        durationTrend: durationTrend.length > 0 ? durationTrend.reverse() : mockSummary.statistics.durationTrend,
-        failuresByStage,
+      ...mockSummary,
+      latestRun: {
+        ...mockSummary.latestRun,
+        author: activeUser,
+        commit: `CI validation for ${targetProject.split('/').pop() || targetProject}`,
       },
     };
   },
@@ -355,9 +492,11 @@ export const api = {
   /**
    * GET /api/pipeline/runs?project=...&status=...&search=...
    */
-  async getPipelineRuns({ project = 'Shwetankjais/cdd_minorproj', status = 'All', search = '' } = {}) {
+  async getPipelineRuns({ project, status = 'All', search = '' } = {}) {
+    const activeUser = getActiveGithubUser() || 'Shwetankjais';
+    const targetProject = project || `${activeUser}/cdd_minorproj`;
     const query = new URLSearchParams();
-    if (project) query.append('project', project);
+    if (targetProject) query.append('project', targetProject);
     if (status && status !== 'All') {
       const mappedStatus = status === 'Passed' ? 'success' : status.includes('Failed') ? 'failure' : status;
       query.append('status', mappedStatus);
@@ -376,7 +515,10 @@ export const api = {
       });
     }
 
-    return mockPipelineRuns;
+    return mockPipelineRuns.map((r) => ({
+      ...r,
+      author: activeUser,
+    }));
   },
 
   /**
@@ -567,16 +709,20 @@ export const api = {
   /**
    * POST /api/auth/login
    */
-  async login({ email = 'shwetank@devpulse.io', name = 'Shwetank Jaiswal', role = 'Developer', githubRepo = 'Shwetankjais/cdd_minorproj' }) {
+  async login({ email, name, role = 'Developer', github_username, githubRepo, avatar_url }) {
+    const cleanUser = github_username || (githubRepo ? githubRepo.split('/')[0] : 'Developer');
+    const token = 'devpulse-session-' + Date.now();
     const fallback = {
-      token: 'devpulse-session-' + Date.now(),
+      token,
       user: {
-        email,
-        name,
+        email: email || `${cleanUser}@devpulse.io`,
+        name: name || cleanUser,
         role,
         githubConnected: true,
-        githubRepo,
-        avatar: 'DP',
+        github_username: cleanUser,
+        githubRepo: githubRepo || `${cleanUser}/cdd_minorproj`,
+        avatar: (name || cleanUser).slice(0, 2).toUpperCase(),
+        avatar_url: avatar_url || `https://github.com/${cleanUser}.png`,
         loginTime: new Date().toISOString(),
       },
     };
@@ -584,7 +730,14 @@ export const api = {
       '/auth/login',
       {
         method: 'POST',
-        body: JSON.stringify({ email, name, role, githubRepo }),
+        body: JSON.stringify({
+          email: fallback.user.email,
+          name: fallback.user.name,
+          role: fallback.user.role,
+          github_username: cleanUser,
+          githubRepo: fallback.user.githubRepo,
+          avatar_url: fallback.user.avatar_url,
+        }),
       },
       fallback
     );

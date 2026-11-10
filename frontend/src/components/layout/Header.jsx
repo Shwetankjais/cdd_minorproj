@@ -328,28 +328,52 @@ export default function Header() {
           <div className="relative" ref={userRef}>
             <button
               onClick={() => setUserDropdownOpen((prev) => !prev)}
-              className="w-8 h-8 rounded-lg bg-[#0A1128] dark:bg-[#1E232E] text-[#D4AF37] font-sans font-bold text-xs flex items-center justify-center border border-[#D4AF37]/50 hover:border-[#D4AF37] shadow-sm transition-all cursor-pointer"
-              title={`${user?.name || 'Developer'} (${user?.role || 'Developer'})`}
+              className="w-8 h-8 rounded-lg bg-[#0A1128] dark:bg-[#1E232E] text-[#D4AF37] font-sans font-bold text-xs flex items-center justify-center border border-[#D4AF37]/50 hover:border-[#D4AF37] shadow-sm transition-all cursor-pointer overflow-hidden"
+              title={`${user?.name || user?.github_username || 'Developer'} (${user?.role || 'Developer'})`}
               aria-label="User profile menu"
             >
-              {user?.name
-                ? user.name
-                    .split(' ')
-                    .map((n) => n[0])
-                    .join('')
-                    .slice(0, 2)
-                    .toUpperCase()
-                : 'DP'}
+              {user?.avatar_url ? (
+                <img
+                  src={user.avatar_url}
+                  alt={user?.name || user?.github_username}
+                  className="w-full h-full object-cover"
+                />
+              ) : user?.name ? (
+                user.name
+                  .split(' ')
+                  .map((n) => n[0])
+                  .join('')
+                  .slice(0, 2)
+                  .toUpperCase()
+              ) : (
+                'DP'
+              )}
             </button>
 
             {userDropdownOpen && (
               <div className="absolute right-0 mt-2 w-64 bg-white dark:bg-[#181C24] rounded-xl border border-[#E2E8F0] dark:border-[#2A303C] p-3.5 shadow-xl shadow-black/40 z-50">
                 <div className="pb-3 border-b border-[#E2E8F0] dark:border-[#2A303C]">
-                  <p className="font-bold text-xs text-[#0F172A] dark:text-[#F8FAFC] truncate font-sans">
-                    {user?.name || 'Shwetank Jaiswal'}
-                  </p>
+                  <div className="flex items-center gap-2 mb-1.5">
+                    {user?.avatar_url && (
+                      <img
+                        src={user.avatar_url}
+                        alt={user.name}
+                        className="w-7 h-7 rounded-md object-cover border border-[#D4AF37]/40"
+                      />
+                    )}
+                    <div className="truncate">
+                      <p className="font-bold text-xs text-[#0F172A] dark:text-[#F8FAFC] truncate font-sans">
+                        {user?.name || user?.github_username || 'Developer'}
+                      </p>
+                      {user?.github_username && (
+                        <p className="text-[10px] font-mono text-[#D4AF37] truncate">
+                          @{user.github_username}
+                        </p>
+                      )}
+                    </div>
+                  </div>
                   <p className="text-[11px] font-mono text-[#64748B] dark:text-[#94A3B8] truncate">
-                    {user?.email || 'shwetank@devpulse.io'}
+                    {user?.email || `${user?.github_username || 'developer'}@devpulse.io`}
                   </p>
                   <span className="inline-block mt-1.5 text-[10px] font-sans font-semibold px-2 py-0.5 rounded-full bg-[#D4AF37]/15 text-[#0A1128] dark:text-[#D4AF37] border border-[#D4AF37]/30">
                     {user?.role || 'Developer'}
@@ -374,7 +398,7 @@ export default function Header() {
                     </span>
                   </div>
                   <p className="text-[10px] font-mono text-[#0F172A] dark:text-[#F8FAFC] truncate bg-[#FAF8F5] dark:bg-[#0B0E14] p-1.5 rounded-lg border border-[#E2E8F0] dark:border-[#2A303C]">
-                    {user?.githubRepo || 'Shwetankjais/cdd_minorproj'}
+                    {user?.githubRepo || (user?.github_username ? `${user.github_username}/cdd_minorproj` : 'github/repo')}
                   </p>
                   <button
                     onClick={toggleGithubConnection}

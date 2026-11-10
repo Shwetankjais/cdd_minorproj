@@ -64,7 +64,32 @@ describe('DevPulse Upgrades: Auth Gate, Workspace Hub & AI Copilot', () => {
 
     // Dashboard should be back
     await waitFor(() => {
-      expect(screen.getByText(/cdd_minorproj/i)).toBeInTheDocument();
+      expect(screen.getAllByText(/cdd_minorproj/i).length).toBeGreaterThan(0);
+    });
+  });
+
+  it('renders dynamic GitHub login gate with blank inputs and demo evaluator option', async () => {
+    // Explicitly simulate logged out state
+    localStorage.setItem('devpulse_logged_out', 'true');
+    renderApp();
+
+    expect(screen.getByText('BUILD.')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText(/your-github-username/i)).toBeInTheDocument();
+    expect(screen.getByPlaceholderText(/you@example.com/i)).toBeInTheDocument();
+    expect(screen.getByText(/Demo Evaluator Login \(Shwetankjais\)/i)).toBeInTheDocument();
+
+    // Fill in a custom friend's username
+    const usernameInput = screen.getByPlaceholderText(/your-github-username/i);
+    fireEvent.change(usernameInput, { target: { value: 'octocat' } });
+    expect(usernameInput.value).toBe('octocat');
+
+    // Click connect
+    const connectBtn = screen.getByRole('button', { name: /\$ connect --github/i });
+    fireEvent.click(connectBtn);
+
+    await waitFor(() => {
+      const session = localStorage.getItem('devpulse_auth_session');
+      expect(session).toBeTruthy();
     });
   });
 });
