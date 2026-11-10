@@ -101,40 +101,40 @@ export default function Header() {
   };
 
   return (
-    <header className="px-4 py-2.5 sm:px-5 bg-white dark:bg-[#0B0E14] border-b border-[#E2E8F0] dark:border-[#262930] flex-shrink-0 z-30 transition-colors duration-150">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
-        {/* Left: Clean Linear/GitHub Breadcrumb */}
-        <div className="flex items-center gap-2.5">
+    <header className="px-4 py-3 sm:px-6 bg-white dark:bg-[#0B0E14] border-b border-[#E2E8F0] dark:border-[#2A303C] flex-shrink-0 z-30 transition-colors duration-150">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+        {/* Left: Warm Welcome Header & Project Subtitle (Screenshot 2 Styling) */}
+        <div className="flex items-center gap-3">
           {/* Hamburger toggle button for <1024px */}
           <button
             onClick={toggleSidebar}
-            className="p-1.5 rounded-md text-[#0F172A] dark:text-[#F8FAFC] hover:bg-[#FAF8F5] dark:hover:bg-[#14171F] lg:hidden border border-[#E2E8F0] dark:border-[#262930] bg-white dark:bg-[#14171F] transition-colors"
+            className="p-1.5 rounded-lg text-[#0F172A] dark:text-[#F8FAFC] hover:bg-[#FAF8F5] dark:hover:bg-[#181C24] lg:hidden border border-[#E2E8F0] dark:border-[#2A303C] bg-white dark:bg-[#181C24] transition-colors"
             aria-label="Toggle navigation sidebar"
           >
             <Menu className="w-4 h-4" />
           </button>
 
           <div>
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <span className="font-mono text-xs sm:text-sm text-[#64748B] dark:text-[#94A3B8]">
-                {activeProject?.displayName || 'cdd_minorproj'}
-              </span>
-              <span className="text-[#94A3B8] dark:text-[#64748B] text-xs">/</span>
-              <h1 className="text-xs sm:text-sm font-semibold text-[#0F172A] dark:text-[#F8FAFC] tracking-tight">
-                {getTabLabel(activeTab)}
+            <div className="flex items-center gap-2 flex-wrap">
+              <h1 className="text-base sm:text-lg font-bold text-[#0F172A] dark:text-[#F8FAFC] tracking-tight flex items-center gap-1.5 font-sans">
+                <span>Welcome to DevPulse</span>
+                <span>👋</span>
               </h1>
-
+              {activeTab !== 'overview' && (
+                <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[#FAF8F5] dark:bg-[#1E232E] text-[#64748B] dark:text-[#94A3B8] border border-[#E2E8F0] dark:border-[#2A303C]">
+                  {getTabLabel(activeTab)}
+                </span>
+              )}
               {isSimulating && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-mono font-medium bg-[#F59E0B]/10 text-[#F59E0B] border border-[#F59E0B]/30">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#F59E0B]"></span>
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#F59E0B]/10 text-[#F59E0B] border border-[#F59E0B]/30 font-sans">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#F59E0B] animate-pulse"></span>
                   simulating ({simPercent}%)
                 </span>
               )}
-
               {user?.githubConnected === false && (
                 <button
                   onClick={toggleGithubConnection}
-                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-mono font-medium bg-[#E63946]/10 text-[#E63946] border border-[#E63946]/30 hover:bg-[#E63946]/20 transition-colors"
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-[#E63946]/10 text-[#E63946] border border-[#E63946]/30 hover:bg-[#E63946]/20 transition-colors font-sans"
                   title="Click to reconnect GitHub"
                 >
                   <AlertCircle className="w-3 h-3" />
@@ -142,28 +142,32 @@ export default function Header() {
                 </button>
               )}
             </div>
-            <p className="text-[11px] font-mono text-[#64748B] dark:text-[#94A3B8] mt-0.5">
-              branch: main • telemetry: active • runner: v1.4.0
+            <p className="text-xs text-[#64748B] dark:text-[#94A3B8] mt-0.5 flex items-center gap-1.5 font-sans">
+              <span>Real-time CI/CD pipeline monitoring across your projects</span>
+              <span className="hidden xl:inline text-[#94A3B8] dark:text-[#64748B]">•</span>
+              <span className="hidden xl:inline text-[11px] text-[#94A3B8] dark:text-[#64748B] font-mono">
+                {activeProject?.displayName || 'cdd_minorproj'}
+              </span>
             </p>
           </div>
         </div>
 
         {/* Right: Controls & Switchers */}
-        <div className="flex items-center flex-wrap gap-2">
+        <div className="flex items-center flex-wrap gap-2 sm:gap-2.5">
           {/* Live Pipeline Simulation Trigger Button */}
           {!isSimulating ? (
             <button
               onClick={startSimulation}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-semibold bg-[#D4AF37] hover:bg-[#C5A059] text-[#0A1128] transition-all"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#D4AF37] hover:bg-[#C5A059] text-[#0A1128] shadow-sm transition-all font-sans cursor-pointer"
               title="Simulate 0% -> 100% pipeline run"
             >
               <Play className="w-3 h-3 fill-current" />
-              <span>Simulate Run</span>
+              <span>Simulate Live Run</span>
             </button>
           ) : (
             <button
               onClick={resetSimulation}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium bg-[#FAF8F5] dark:bg-[#14171F] hover:bg-[#E2E8F0] dark:hover:bg-[#1A1E29] text-[#0F172A] dark:text-[#F8FAFC] border border-[#E2E8F0] dark:border-[#262930] transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-[#FAF8F5] dark:bg-[#181C24] hover:bg-[#E2E8F0] dark:hover:bg-[#1E232E] text-[#0F172A] dark:text-[#F8FAFC] border border-[#E2E8F0] dark:border-[#2A303C] transition-colors font-sans cursor-pointer shadow-sm"
             >
               <RotateCcw className="w-3 h-3" />
               <span>Reset</span>
@@ -173,12 +177,12 @@ export default function Header() {
           {/* Quick 1-Click Source Control Drawer Button */}
           <button
             onClick={toggleGitDrawer}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium border border-[#E2E8F0] dark:border-[#262930] bg-white dark:bg-[#14171F] hover:bg-[#FAF8F5] dark:hover:bg-[#1A1E29] text-[#0F172A] dark:text-[#F8FAFC] transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-[#E2E8F0] dark:border-[#2A303C] bg-white dark:bg-[#181C24] hover:bg-[#FAF8F5] dark:hover:bg-[#1E232E] text-[#0F172A] dark:text-[#F8FAFC] transition-colors shadow-sm font-sans cursor-pointer"
             title="Open 1-Click Git Drawer"
           >
             <GitCommit className="w-3.5 h-3.5 text-[#D4AF37]" />
             <span className="hidden sm:inline">1-Click Git</span>
-            <span className="font-mono text-[10px] px-1 rounded bg-[#D4AF37]/15 text-[#0A1128] dark:text-[#D4AF37] border border-[#D4AF37]/30">
+            <span className="text-[10px] px-1 rounded bg-[#D4AF37]/15 text-[#0A1128] dark:text-[#D4AF37] border border-[#D4AF37]/30 font-semibold font-mono">
               5
             </span>
           </button>
@@ -186,28 +190,28 @@ export default function Header() {
           {/* AI Copilot Toggle Button */}
           <button
             onClick={toggleAiCopilot}
-            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium border transition-colors ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors shadow-sm font-sans cursor-pointer ${
               isAiCopilotOpen
-                ? 'bg-[#14171F] text-[#D4AF37] border-[#D4AF37]'
-                : 'bg-white dark:bg-[#14171F] border-[#E2E8F0] dark:border-[#262930] hover:border-[#D4AF37]/50 text-[#0F172A] dark:text-[#F8FAFC]'
+                ? 'bg-[#181C24] text-[#D4AF37] border-[#D4AF37]'
+                : 'bg-white dark:bg-[#181C24] border-[#E2E8F0] dark:border-[#2A303C] hover:border-[#D4AF37]/50 text-[#0F172A] dark:text-[#F8FAFC]'
             }`}
             title="Toggle DevPulse Copilot"
             aria-label="Toggle DevPulse Copilot"
           >
             <Sparkles className="w-3.5 h-3.5 text-[#D4AF37]" />
             <span className="hidden sm:inline">Copilot</span>
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
           </button>
 
           {/* Project Selection Dropdown */}
           <div className="relative" ref={projectRef}>
             <button
               onClick={() => setProjectDropdownOpen((prev) => !prev)}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium border border-[#E2E8F0] dark:border-[#262930] bg-white dark:bg-[#14171F] hover:bg-[#FAF8F5] dark:hover:bg-[#1A1E29] text-[#0F172A] dark:text-[#F8FAFC] transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-[#E2E8F0] dark:border-[#2A303C] bg-white dark:bg-[#181C24] hover:bg-[#FAF8F5] dark:hover:bg-[#1E232E] text-[#0F172A] dark:text-[#F8FAFC] transition-colors shadow-sm font-sans cursor-pointer"
             >
-              <FolderGit2 className="w-3.5 h-3.5 text-[#64748B] dark:text-[#94A3B8]" />
-              <span className="max-w-[120px] truncate font-mono">
-                {activeProject?.displayName || 'Project'}
+              <FolderGit2 className="w-3.5 h-3.5 text-[#D4AF37]" />
+              <span className="max-w-[130px] truncate font-medium">
+                {activeProject?.displayName || 'cdd_minorproj'}
               </span>
               <ChevronDown
                 className={`w-3 h-3 text-[#64748B] dark:text-[#94A3B8] transition-transform ${projectDropdownOpen ? 'rotate-180' : ''}`}
@@ -215,35 +219,40 @@ export default function Header() {
             </button>
 
             {projectDropdownOpen && (
-              <div className="absolute right-0 mt-1.5 w-60 bg-white dark:bg-[#14171F] rounded-md border border-[#E2E8F0] dark:border-[#262930] py-1 shadow-lg z-50">
-                <div className="px-3 py-1 text-[10px] font-mono uppercase tracking-wider text-[#64748B] dark:text-[#94A3B8]">
+              <div className="absolute right-0 mt-2 w-64 bg-white dark:bg-[#181C24] rounded-xl border border-[#E2E8F0] dark:border-[#2A303C] py-1.5 shadow-xl shadow-black/40 z-50">
+                <div className="px-3.5 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-[#64748B] dark:text-[#94A3B8]">
                   Select Repository
                 </div>
-                {projects.map((proj) => {
-                  const isSelected = proj.id === activeProject.id;
-                  return (
-                    <button
-                      key={proj.id}
-                      onClick={() => {
-                        setActiveProject(proj);
-                        setProjectDropdownOpen(false);
-                      }}
-                      className={`w-full px-3 py-1.5 text-left text-xs flex items-center justify-between transition-colors ${
-                        isSelected
-                          ? 'bg-[#FAF8F5] dark:bg-[#1A1E29] text-[#0A1128] dark:text-[#D4AF37] font-semibold border-l-2 border-[#D4AF37]'
-                          : 'hover:bg-[#FAF8F5] dark:hover:bg-[#1A1E29] text-[#0F172A] dark:text-[#F8FAFC]'
-                      }`}
-                    >
-                      <div className="truncate mr-2">
-                        <p className="font-mono truncate">{proj.displayName}</p>
-                        <p className="text-[10px] text-[#64748B] dark:text-[#94A3B8] font-normal tabular-nums">
-                          {proj.passRate}% passing • {proj.lastAuthor}
-                        </p>
-                      </div>
-                      {isSelected && <Check className="w-3.5 h-3.5 flex-shrink-0 text-[#D4AF37]" />}
-                    </button>
-                  );
-                })}
+                <div className="max-h-72 overflow-y-auto divide-y divide-[#E2E8F0]/40 dark:divide-[#2A303C]/60">
+                  {projects.map((proj) => {
+                    const isSelected = proj.id === activeProject.id || proj.displayName === activeProject.displayName;
+                    const authorName = (!proj.lastAuthor || proj.lastAuthor === 'Unavailable') ? 'Shwetank Jaiswal' : proj.lastAuthor;
+                    return (
+                      <button
+                        key={proj.id || proj.displayName}
+                        onClick={() => {
+                          setActiveProject(proj);
+                          setProjectDropdownOpen(false);
+                        }}
+                        className={`w-full px-3.5 py-2 text-left text-xs flex items-center justify-between transition-colors ${
+                          isSelected
+                            ? 'bg-[#FAF8F5] dark:bg-[#1E232E] text-[#0A1128] dark:text-[#D4AF37] font-semibold border-l-2 border-[#D4AF37]'
+                            : 'hover:bg-[#FAF8F5] dark:hover:bg-[#1E232E]/60 text-[#0F172A] dark:text-[#F8FAFC]'
+                        }`}
+                      >
+                        <div className="truncate mr-2">
+                          <p className="font-semibold text-xs truncate text-[#0F172A] dark:text-[#F8FAFC]">
+                            {proj.displayName}
+                          </p>
+                          <p className="text-[10px] text-[#64748B] dark:text-[#94A3B8] font-normal mt-0.5">
+                            {proj.passRate}% passing • {authorName}
+                          </p>
+                        </div>
+                        {isSelected && <Check className="w-3.5 h-3.5 flex-shrink-0 text-[#D4AF37]" />}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             )}
           </div>
@@ -252,7 +261,7 @@ export default function Header() {
           <div className="relative" ref={notifRef}>
             <button
               onClick={() => setNotifDropdownOpen((prev) => !prev)}
-              className="relative p-1.5 rounded-md border border-[#E2E8F0] dark:border-[#262930] bg-white dark:bg-[#14171F] hover:bg-[#FAF8F5] dark:hover:bg-[#1A1E29] text-[#0F172A] dark:text-[#F8FAFC] transition-colors"
+              className="relative p-2 rounded-lg border border-[#E2E8F0] dark:border-[#2A303C] bg-white dark:bg-[#181C24] hover:bg-[#FAF8F5] dark:hover:bg-[#1E232E] text-[#0F172A] dark:text-[#F8FAFC] transition-colors shadow-sm cursor-pointer"
               title="Role Handoff Notifications"
             >
               <Bell className="w-4 h-4" />
@@ -264,33 +273,33 @@ export default function Header() {
             </button>
 
             {notifDropdownOpen && (
-              <div className="absolute right-0 mt-1.5 w-72 bg-white dark:bg-[#14171F] rounded-md border border-[#E2E8F0] dark:border-[#262930] p-2 shadow-lg z-50">
-                <div className="flex items-center justify-between pb-1.5 mb-1.5 border-b border-[#E2E8F0] dark:border-[#262930] px-1">
-                  <span className="text-xs font-semibold text-[#0F172A] dark:text-[#F8FAFC] flex items-center gap-1.5">
+              <div className="absolute right-0 mt-2 w-72 bg-white dark:bg-[#181C24] rounded-xl border border-[#E2E8F0] dark:border-[#2A303C] p-3 shadow-xl shadow-black/40 z-50">
+                <div className="flex items-center justify-between pb-2 mb-2 border-b border-[#E2E8F0] dark:border-[#2A303C] px-1">
+                  <span className="text-xs font-bold text-[#0F172A] dark:text-[#F8FAFC] flex items-center gap-1.5 font-sans">
                     Handoff Alerts
                   </span>
                   {unreadCount > 0 && (
-                    <button onClick={markAllRead} className="text-[10px] text-[#D4AF37] hover:underline font-mono">
+                    <button onClick={markAllRead} className="text-[10px] text-[#D4AF37] hover:underline font-sans font-semibold cursor-pointer">
                       Mark read
                     </button>
                   )}
                 </div>
 
-                <div className="space-y-1 max-h-56 overflow-y-auto">
+                <div className="space-y-1.5 max-h-56 overflow-y-auto">
                   {notifications.map((n) => (
                     <div
                       key={n.id}
-                      className={`p-2 rounded-md text-xs transition-colors ${
+                      className={`p-2.5 rounded-lg text-xs transition-colors ${
                         !n.read
-                          ? 'bg-[#FAF8F5] dark:bg-[#1A1E29] border border-[#D4AF37]/30'
-                          : 'bg-white dark:bg-[#14171F] border border-[#E2E8F0] dark:border-[#262930]'
+                          ? 'bg-[#FAF8F5] dark:bg-[#1E232E] border border-[#D4AF37]/40 shadow-sm'
+                          : 'bg-white dark:bg-[#181C24] border border-[#E2E8F0] dark:border-[#2A303C]'
                       }`}
                     >
-                      <div className="flex items-center justify-between font-semibold text-[#0F172A] dark:text-[#F8FAFC] mb-0.5">
-                        <span className="text-[11px]">{n.title}</span>
+                      <div className="flex items-center justify-between font-bold text-[#0F172A] dark:text-[#F8FAFC] mb-0.5 font-sans">
+                        <span className="text-xs">{n.title}</span>
                         <span className="text-[10px] text-[#64748B] dark:text-[#94A3B8] font-mono">{n.time}</span>
                       </div>
-                      <p className="text-[11px] text-[#64748B] dark:text-[#94A3B8] leading-tight">{n.message}</p>
+                      <p className="text-[11px] text-[#64748B] dark:text-[#94A3B8] leading-tight font-sans">{n.message}</p>
                       <div className="mt-1 text-[10px] font-mono text-[#B45309] dark:text-[#F59E0B]">
                         Target: {n.team}
                       </div>
@@ -304,7 +313,7 @@ export default function Header() {
           {/* Dark / Light Mode Toggle */}
           <button
             onClick={toggleTheme}
-            className="p-1.5 rounded-md border border-[#E2E8F0] dark:border-[#262930] bg-white dark:bg-[#14171F] hover:bg-[#FAF8F5] dark:hover:bg-[#1A1E29] text-[#0F172A] dark:text-[#F8FAFC] transition-colors"
+            className="p-2 rounded-lg border border-[#E2E8F0] dark:border-[#2A303C] bg-white dark:bg-[#181C24] hover:bg-[#FAF8F5] dark:hover:bg-[#1E232E] text-[#0F172A] dark:text-[#F8FAFC] transition-colors shadow-sm cursor-pointer"
             title={`Switch to ${isDark ? 'Light' : 'Dark'} Mode`}
             aria-label="Toggle theme"
           >
@@ -319,7 +328,7 @@ export default function Header() {
           <div className="relative" ref={userRef}>
             <button
               onClick={() => setUserDropdownOpen((prev) => !prev)}
-              className="w-7 h-7 rounded-md bg-[#0A1128] dark:bg-[#14171F] text-[#D4AF37] font-mono font-bold text-xs flex items-center justify-center border border-[#D4AF37]/40 hover:border-[#D4AF37] transition-all cursor-pointer"
+              className="w-8 h-8 rounded-lg bg-[#0A1128] dark:bg-[#1E232E] text-[#D4AF37] font-sans font-bold text-xs flex items-center justify-center border border-[#D4AF37]/50 hover:border-[#D4AF37] shadow-sm transition-all cursor-pointer"
               title={`${user?.name || 'Developer'} (${user?.role || 'Developer'})`}
               aria-label="User profile menu"
             >
@@ -334,55 +343,55 @@ export default function Header() {
             </button>
 
             {userDropdownOpen && (
-              <div className="absolute right-0 mt-1.5 w-64 bg-white dark:bg-[#14171F] rounded-md border border-[#E2E8F0] dark:border-[#262930] p-3 shadow-lg z-50">
-                <div className="pb-2.5 border-b border-[#E2E8F0] dark:border-[#262930]">
-                  <p className="font-semibold text-xs text-[#0F172A] dark:text-[#F8FAFC] truncate">
+              <div className="absolute right-0 mt-2 w-64 bg-white dark:bg-[#181C24] rounded-xl border border-[#E2E8F0] dark:border-[#2A303C] p-3.5 shadow-xl shadow-black/40 z-50">
+                <div className="pb-3 border-b border-[#E2E8F0] dark:border-[#2A303C]">
+                  <p className="font-bold text-xs text-[#0F172A] dark:text-[#F8FAFC] truncate font-sans">
                     {user?.name || 'Shwetank Jaiswal'}
                   </p>
                   <p className="text-[11px] font-mono text-[#64748B] dark:text-[#94A3B8] truncate">
                     {user?.email || 'shwetank@devpulse.io'}
                   </p>
-                  <span className="inline-block mt-1 text-[10px] font-mono px-1.5 py-0.5 rounded bg-[#D4AF37]/15 text-[#0A1128] dark:text-[#D4AF37] border border-[#D4AF37]/30">
+                  <span className="inline-block mt-1.5 text-[10px] font-sans font-semibold px-2 py-0.5 rounded-full bg-[#D4AF37]/15 text-[#0A1128] dark:text-[#D4AF37] border border-[#D4AF37]/30">
                     {user?.role || 'Developer'}
                   </span>
                 </div>
 
                 {/* GitHub Connection Info */}
-                <div className="py-2 space-y-1.5 border-b border-[#E2E8F0] dark:border-[#262930]">
+                <div className="py-2.5 space-y-2 border-b border-[#E2E8F0] dark:border-[#2A303C]">
                   <div className="flex items-center justify-between text-xs">
-                    <span className="text-[#64748B] dark:text-[#94A3B8] flex items-center gap-1">
-                      <Github className="w-3 h-3 text-[#0F172A] dark:text-[#F8FAFC]" />
+                    <span className="text-[#64748B] dark:text-[#94A3B8] flex items-center gap-1 font-sans">
+                      <Github className="w-3.5 h-3.5 text-[#0F172A] dark:text-[#F8FAFC]" />
                       GitHub:
                     </span>
                     <span
-                      className={`text-[10px] font-mono px-1 rounded ${
+                      className={`text-[10px] font-sans font-semibold px-1.5 py-0.5 rounded-full ${
                         user?.githubConnected
-                          ? 'text-emerald-500 bg-emerald-500/10'
-                          : 'text-[#E63946] bg-[#E63946]/10'
+                          ? 'text-emerald-500 bg-emerald-500/10 border border-emerald-500/20'
+                          : 'text-[#E63946] bg-[#E63946]/10 border border-[#E63946]/20'
                       }`}
                     >
-                      {user?.githubConnected ? 'connected' : 'disconnected'}
+                      {user?.githubConnected ? 'Connected' : 'Disconnected'}
                     </span>
                   </div>
-                  <p className="text-[10px] font-mono text-[#0F172A] dark:text-[#F8FAFC] truncate bg-[#FAF8F5] dark:bg-[#0B0E14] p-1 rounded border border-[#E2E8F0] dark:border-[#262930]">
+                  <p className="text-[10px] font-mono text-[#0F172A] dark:text-[#F8FAFC] truncate bg-[#FAF8F5] dark:bg-[#0B0E14] p-1.5 rounded-lg border border-[#E2E8F0] dark:border-[#2A303C]">
                     {user?.githubRepo || 'Shwetankjais/cdd_minorproj'}
                   </p>
                   <button
                     onClick={toggleGithubConnection}
-                    className="w-full text-center text-[10px] font-mono text-[#D4AF37] hover:underline"
+                    className="w-full text-center text-[10px] font-sans font-semibold text-[#D4AF37] hover:underline cursor-pointer"
                   >
-                    {user?.githubConnected ? 'simulate disconnect' : 'reconnect github'}
+                    {user?.githubConnected ? 'Simulate Disconnect' : 'Reconnect GitHub'}
                   </button>
                 </div>
 
                 {/* Logout Action */}
-                <div className="pt-2">
+                <div className="pt-2.5">
                   <button
                     onClick={() => {
                       setUserDropdownOpen(false);
                       logout();
                     }}
-                    className="w-full flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium text-[#E63946] hover:bg-[#E63946]/10 border border-[#E63946]/20 transition-colors"
+                    className="w-full flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-sans font-semibold text-[#E63946] hover:bg-[#E63946]/10 border border-[#E63946]/25 transition-colors cursor-pointer"
                   >
                     <LogOut className="w-3.5 h-3.5" />
                     <span>Switch User / Logout</span>

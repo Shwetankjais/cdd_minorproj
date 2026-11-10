@@ -114,13 +114,13 @@ export default function PipelineStageVisualizer() {
   };
 
   return (
-    <div className="p-4 sm:p-5 rounded-lg bg-white dark:bg-[#14171F] border border-[#E2E8F0] dark:border-[#262930] relative overflow-hidden transition-colors">
+    <div className="p-4 sm:p-5 rounded-xl bg-white dark:bg-[#181C24] border border-[#E2E8F0] dark:border-[#2A303C] shadow-lg shadow-black/10 dark:shadow-black/25 relative overflow-hidden transition-all">
       {/* Card Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-5">
         <div className="flex items-center gap-2.5">
-          <h2 className="text-sm font-semibold text-[#0F172A] dark:text-[#F8FAFC] flex items-center gap-2">
-            <span>Pipeline Execution Flow</span>
-            <span className="font-mono text-xs text-[#0F172A] dark:text-[#D4AF37] bg-[#FAF8F5] dark:bg-[#1A1E29] px-2 py-0.5 rounded border border-[#E2E8F0] dark:border-[#262930]">
+          <h2 className="text-sm sm:text-base font-bold text-[#0F172A] dark:text-[#F8FAFC] flex items-center gap-2 font-sans">
+            <span>Latest Pipeline Run</span>
+            <span className="font-mono text-xs text-[#0F172A] dark:text-[#D4AF37] bg-[#FAF8F5] dark:bg-[#1E232E] px-2 py-0.5 rounded-md border border-[#E2E8F0] dark:border-[#2A303C]">
               {isSimulating ? '#1288 (Live Simulation)' : selectedRun?.id || '#1287'}
             </span>
           </h2>
@@ -131,21 +131,21 @@ export default function PipelineStageVisualizer() {
 
         <div className="flex items-center gap-2">
           {isSimulating ? (
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded text-xs font-mono font-medium bg-[#F59E0B]/10 text-[#F59E0B] border border-[#F59E0B]/30">
-              <Loader2 className="w-3 h-3 animate-spin" />
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-sans font-medium bg-[#F59E0B]/10 text-[#F59E0B] border border-[#F59E0B]/30 shadow-sm">
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
               running ({simPercent}%)
             </span>
           ) : isRunFailed ? (
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded text-xs font-mono font-medium bg-[#E63946]/10 text-[#E63946] border border-[#E63946]/30">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#E63946]"></span>
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-sans font-medium bg-[#E63946]/10 text-[#E63946] border border-[#E63946]/30 shadow-sm">
+              <span className="w-2 h-2 rounded-full bg-[#E63946]"></span>
               {selectedRun?.status?.includes('Failed at')
                 ? selectedRun.status
                 : `Failed at ${stages.find((s) => s.id === failedStageId)?.name || 'Build'}`}
             </span>
           ) : (
-            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded text-xs font-mono font-medium bg-emerald-500/10 text-emerald-500 border border-emerald-500/30">
-              <Check className="w-3 h-3 stroke-[2.5]" />
-              passed (all stages)
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-sans font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 shadow-sm">
+              <Check className="w-3.5 h-3.5 stroke-[2.5]" />
+              Passed (All Stages)
             </span>
           )}
         </div>
@@ -155,9 +155,9 @@ export default function PipelineStageVisualizer() {
       <div className="py-2 px-1">
         <div className="grid grid-cols-4 relative items-start">
           {/* Continuous connecting track background */}
-          <div className="absolute left-[12.5%] right-[12.5%] top-6 sm:top-7 -translate-y-1/2 h-0.5 bg-[#E2E8F0] dark:bg-[#262930] z-0 pointer-events-none">
+          <div className="absolute left-[12.5%] right-[12.5%] top-6 sm:top-7 -translate-y-1/2 h-0.5 bg-[#E2E8F0] dark:bg-[#2A303C] z-0 pointer-events-none">
             <div
-              className={`h-full transition-all duration-200 ${
+              className={`h-full transition-all duration-300 ${
                 isRunFailed ? 'bg-[#E63946]' : 'bg-[#D4AF37]'
               }`}
               style={{
@@ -179,24 +179,24 @@ export default function PipelineStageVisualizer() {
                 {/* Circular Node with solid opaque background masking */}
                 <div className="relative group">
                   <div
-                    className={`w-12 h-12 sm:w-14 sm:h-14 rounded-full flex items-center justify-center transition-colors relative overflow-hidden bg-white dark:bg-[#14171F] ${
+                    className={`w-12 h-12 sm:w-14 sm:h-14 rounded-full flex items-center justify-center transition-all relative overflow-hidden bg-white dark:bg-[#181C24] shadow-md ${
                       isCompleted
-                        ? 'border border-emerald-500 text-emerald-500'
+                        ? 'border-2 border-emerald-500 text-emerald-500 shadow-emerald-500/10'
                         : isRunning
-                        ? 'border border-[#F59E0B] text-[#F59E0B]'
+                        ? 'border-2 border-[#F59E0B] text-[#F59E0B] shadow-[#F59E0B]/10'
                         : isFailed
-                        ? 'border border-[#E63946] text-[#E63946]'
-                        : 'border border-[#E2E8F0] dark:border-[#262930] text-[#94A3B8]'
+                        ? 'border-2 border-[#E63946] text-[#E63946] shadow-[#E63946]/10'
+                        : 'border border-[#E2E8F0] dark:border-[#2A303C] text-[#94A3B8]'
                     }`}
                   >
                     <div
                       className={`absolute inset-0 rounded-full pointer-events-none ${
                         isCompleted
-                          ? 'bg-emerald-500/5'
+                          ? 'bg-emerald-500/10'
                           : isRunning
-                          ? 'bg-[#F59E0B]/5'
+                          ? 'bg-[#F59E0B]/10'
                           : isFailed
-                          ? 'bg-[#E63946]/5'
+                          ? 'bg-[#E63946]/10'
                           : ''
                       }`}
                     />
@@ -213,12 +213,12 @@ export default function PipelineStageVisualizer() {
                   {/* Status indicator pin */}
                   <div className="absolute -top-0.5 -right-0.5 z-20">
                     {isCompleted && (
-                      <div className="w-4 h-4 rounded-full bg-emerald-500 text-white flex items-center justify-center text-[9px]">
+                      <div className="w-4 h-4 rounded-full bg-emerald-500 text-white flex items-center justify-center text-[9px] shadow-sm">
                         <Check className="w-2.5 h-2.5 stroke-[3]" />
                       </div>
                     )}
                     {isFailed && (
-                      <div className="w-4 h-4 rounded-full bg-[#E63946] text-white flex items-center justify-center text-[9px] font-mono font-bold">
+                      <div className="w-4 h-4 rounded-full bg-[#E63946] text-white flex items-center justify-center text-[9px] font-mono font-bold shadow-sm">
                         ✕
                       </div>
                     )}
@@ -226,12 +226,12 @@ export default function PipelineStageVisualizer() {
                 </div>
 
                 {/* Node Label & Duration */}
-                <div className="mt-2 text-center">
-                  <p className="text-xs font-semibold text-[#0F172A] dark:text-[#F8FAFC]">{stage.name}</p>
+                <div className="mt-2.5 text-center">
+                  <p className="text-xs font-semibold text-[#0F172A] dark:text-[#F8FAFC] font-sans">{stage.name}</p>
                   <p className="text-[11px] text-[#64748B] dark:text-[#94A3B8] font-mono tabular-nums mt-0.5">
                     {status === 'skipped' ? 'Skipped' : stage.duration}
                   </p>
-                  <span className="text-[10px] font-mono text-[#64748B] dark:text-[#94A3B8] hidden sm:block">
+                  <span className="text-[10px] text-[#64748B] dark:text-[#94A3B8] hidden sm:block">
                     {stage.team}
                   </span>
                 </div>
@@ -242,7 +242,7 @@ export default function PipelineStageVisualizer() {
       </div>
 
       {/* Role Handoff Progress Bar & Pre-Notification Banner */}
-      <div className="mt-5 pt-4 border-t border-[#E2E8F0] dark:border-[#262930]">
+      <div className="mt-5 pt-4 border-t border-[#E2E8F0] dark:border-[#2A303C]">
         <RoleHandoffProgressBar />
       </div>
     </div>

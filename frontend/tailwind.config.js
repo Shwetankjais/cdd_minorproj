@@ -8,17 +8,18 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Linear/Vercel Dark Theme Tokens
+        // Elevated Dark Theme Tokens (Screenshot 2 Palette)
         darkcanvas: {
           DEFAULT: '#0B0E14',
           alt: '#0F1219',
         },
         darkcard: {
-          DEFAULT: '#14171F',
-          elevated: '#1A1E29',
-          border: '#262930',
+          DEFAULT: '#181C24',
+          elevated: '#1E232E',
+          surface: '#1C1E24',
+          border: '#2A303C',
         },
-        // Light Mode Tokens (Soft Ivory & Warm Ivory Slate)
+        // Light Mode Tokens (Soft Ivory & Warm Slate)
         ivory: {
           50: '#FDFBF7',
           100: '#FAF8F5',
@@ -38,8 +39,12 @@ export default {
           hover: '#B8942A',
         },
       },
+      boxShadow: {
+        'card': '0 4px 20px -2px rgba(0, 0, 0, 0.35)',
+        'card-sm': '0 2px 10px -1px rgba(0, 0, 0, 0.25)',
+      },
       fontFamily: {
-        sans: ['Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
+        sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Plus Jakarta Sans', 'sans-serif'],
       }
     },
   },

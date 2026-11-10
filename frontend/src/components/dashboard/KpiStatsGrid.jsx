@@ -23,7 +23,7 @@ export default function KpiStatsGrid() {
       trend: kpis.totalBuildsTrend,
       isPositive: true,
       icon: Layers,
-      iconBg: 'bg-[#FAF8F5] dark:bg-[#1A1E29] text-[#0A1128] dark:text-[#D4AF37]',
+      iconBg: 'bg-[#D4AF37]/15 text-[#D4AF37] border border-[#D4AF37]/30',
     },
     {
       id: 'successful',
@@ -32,16 +32,16 @@ export default function KpiStatsGrid() {
       trend: kpis.successfulBuildsTrend,
       isPositive: true,
       icon: CheckCircle2,
-      iconBg: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
+      iconBg: 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30',
     },
     {
       id: 'failed',
       title: 'Failed Builds',
       value: kpis.failedBuilds,
       trend: kpis.failedBuildsTrend,
-      isPositive: true,
+      isPositive: false,
       icon: XCircle,
-      iconBg: 'bg-[#E63946]/10 text-[#E63946]',
+      iconBg: 'bg-[#E63946]/15 text-[#E63946] border border-[#E63946]/30',
     },
     {
       id: 'rate',
@@ -50,44 +50,44 @@ export default function KpiStatsGrid() {
       trend: kpis.successRateTrend,
       isPositive: true,
       icon: Percent,
-      iconBg: 'bg-[#D4AF37]/15 text-[#C5A059] dark:text-[#D4AF37]',
+      iconBg: 'bg-[#D4AF37]/15 text-[#D4AF37] border border-[#D4AF37]/30',
     },
   ];
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
       {cards.map((card) => {
         const Icon = card.icon;
         return (
           <div
             key={card.id}
-            className="p-3 sm:p-3.5 rounded-lg bg-white dark:bg-[#14171F] border border-[#E2E8F0] dark:border-[#262930] flex items-center justify-between transition-colors"
+            className="p-4 sm:p-5 rounded-xl bg-white dark:bg-[#181C24] border border-[#E2E8F0] dark:border-[#2A303C] shadow-lg shadow-black/10 dark:shadow-black/25 flex items-center justify-between transition-all"
           >
             <div>
-              <p className="text-[11px] font-mono uppercase tracking-wider text-[#64748B] dark:text-[#94A3B8]">
+              <p className="text-xs font-semibold uppercase tracking-wider text-[#64748B] dark:text-[#94A3B8]">
                 {card.title}
               </p>
-              <div className="flex items-baseline gap-2 mt-1">
-                <span className="text-xl sm:text-2xl font-bold font-mono tabular-nums text-[#0F172A] dark:text-[#F8FAFC]">
+              <div className="flex items-baseline gap-2.5 mt-1.5">
+                <span className="text-2xl sm:text-3xl font-bold font-sans tracking-tight text-[#0F172A] dark:text-[#F8FAFC]">
                   {card.value}
                 </span>
                 <span
-                  className={`inline-flex items-center text-[10px] font-mono ${
+                  className={`inline-flex items-center text-xs font-semibold ${
                     card.isPositive ? 'text-emerald-500' : 'text-[#E63946]'
                   }`}
                 >
                   {card.trend.startsWith('+') ? (
-                    <TrendingUp className="w-2.5 h-2.5 mr-0.5 inline" />
+                    <TrendingUp className="w-3 h-3 mr-0.5 inline" />
                   ) : (
-                    <TrendingDown className="w-2.5 h-2.5 mr-0.5 inline" />
+                    <TrendingDown className="w-3 h-3 mr-0.5 inline" />
                   )}
                   {card.trend}
                 </span>
               </div>
             </div>
 
-            <div className={`w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0 ${card.iconBg} border border-[#E2E8F0] dark:border-[#262930]`}>
-              <Icon className="w-4 h-4 stroke-[2]" />
+            <div className={`w-11 h-11 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm ${card.iconBg}`}>
+              <Icon className="w-5 h-5 stroke-[2.2]" />
             </div>
           </div>
         );

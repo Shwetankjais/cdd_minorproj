@@ -3,6 +3,7 @@ import Sidebar from './components/layout/Sidebar';
 import Header from './components/layout/Header';
 import KpiStatsGrid from './components/dashboard/KpiStatsGrid';
 import PipelineStageVisualizer from './components/dashboard/PipelineStageVisualizer';
+import BuildStatisticsOverviewCard from './components/dashboard/BuildStatisticsOverviewCard';
 import BuildAnalyticsCharts from './components/dashboard/BuildAnalyticsCharts';
 import RunsHistoryTable from './components/dashboard/RunsHistoryTable';
 import TestSummaryCard from './components/dashboard/TestSummaryCard';
@@ -52,63 +53,70 @@ export default function App() {
         {/* Dynamic Dedicated View: Render ONLY the selected tab view (Zero Page Dump) */}
         <main className="flex-1 p-3.5 sm:p-4 overflow-y-auto min-w-0">
           <div className="max-w-7xl mx-auto w-full space-y-4">
-            {/* Tab 1: Overview (Fits 100% in 1 Viewport with ZERO Scroll) */}
+            {/* Tab 1: Overview (Fits in 1 Viewport with ZERO Scroll - 2-Column Grid) */}
             {isOverview && (
               <div className="space-y-4">
                 {/* Top Row: 4 compact KPI Statistics Cards */}
                 <KpiStatsGrid />
 
-                {/* Center Card: 4-Stage Pipeline Visualizer + Role Handoff Bar */}
-                <PipelineStageVisualizer />
+                {/* Row 2: 2-Column Balanced Grid (Left 2/3: Pipeline Execution Flow + Role Handoff, Right 1/3: Build Statistics) */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-stretch">
+                  <div className="lg:col-span-2">
+                    <PipelineStageVisualizer />
+                  </div>
+                  <div className="lg:col-span-1">
+                    <BuildStatisticsOverviewCard />
+                  </div>
+                </div>
 
                 {/* Shortcut Navigation Pills to other dedicated tabs */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <button
                     onClick={() => setActiveTab('runs')}
-                    className="p-3 rounded-lg bg-white dark:bg-[#14171F] border border-[#E2E8F0] dark:border-[#262930] hover:border-[#D4AF37]/50 text-left transition-colors flex items-center justify-between group cursor-pointer"
+                    className="p-3.5 rounded-xl bg-white dark:bg-[#181C24] border border-[#E2E8F0] dark:border-[#2A303C] hover:border-[#D4AF37]/50 shadow-sm text-left transition-all flex items-center justify-between group cursor-pointer"
                   >
                     <div>
-                      <p className="text-xs font-semibold text-[#0F172A] dark:text-[#F8FAFC] flex items-center gap-1.5">
+                      <p className="text-xs font-semibold text-[#0F172A] dark:text-[#F8FAFC] flex items-center gap-1.5 font-sans">
                         <History className="w-3.5 h-3.5 text-[#D4AF37]" />
                         <span>View Pipeline Runs & History</span>
                       </p>
-                      <p className="text-[10px] font-mono text-[#64748B] dark:text-[#94A3B8] mt-0.5">
+                      <p className="text-[11px] text-[#64748B] dark:text-[#94A3B8] mt-0.5 font-sans">
                         Searchable runs & waterfall execution timeline
                       </p>
                     </div>
-                    <ArrowRight className="w-3.5 h-3.5 text-[#94A3B8] group-hover:text-[#D4AF37] transition-colors" />
+                    <ArrowRight className="w-4 h-4 text-[#94A3B8] group-hover:text-[#D4AF37] group-hover:translate-x-0.5 transition-all" />
                   </button>
 
                   <button
                     onClick={() => setActiveTab('diagnostics')}
-                    className="p-3 rounded-lg bg-white dark:bg-[#14171F] border border-[#E2E8F0] dark:border-[#262930] hover:border-[#D4AF37]/50 text-left transition-colors flex items-center justify-between group cursor-pointer"
+                    className="p-3.5 rounded-xl bg-white dark:bg-[#181C24] border border-[#E2E8F0] dark:border-[#2A303C] hover:border-[#D4AF37]/50 shadow-sm text-left transition-all flex items-center justify-between group cursor-pointer"
                   >
                     <div>
-                      <p className="text-xs font-semibold text-[#0F172A] dark:text-[#F8FAFC] flex items-center gap-1.5">
+                      <p className="text-xs font-semibold text-[#0F172A] dark:text-[#F8FAFC] flex items-center gap-1.5 font-sans">
                         <AlertOctagon className="w-3.5 h-3.5 text-[#E63946]" />
                         <span>Diagnostics & Failure Analysis</span>
                       </p>
-                      <p className="text-[10px] font-mono text-[#64748B] dark:text-[#94A3B8] mt-0.5">
+                      <p className="text-[11px] text-[#64748B] dark:text-[#94A3B8] mt-0.5 font-sans">
                         3-line root cause diagnosis & terminal logs
                       </p>
                     </div>
-                    <ArrowRight className="w-3.5 h-3.5 text-[#94A3B8] group-hover:text-[#D4AF37] transition-colors" />
+                    <ArrowRight className="w-4 h-4 text-[#94A3B8] group-hover:text-[#D4AF37] group-hover:translate-x-0.5 transition-all" />
                   </button>
 
                   <button
                     onClick={() => setActiveTab('analytics')}
-                    className="p-3 rounded-lg bg-white dark:bg-[#14171F] border border-[#E2E8F0] dark:border-[#262930] hover:border-[#D4AF37]/50 text-left transition-colors flex items-center justify-between group cursor-pointer"
+                    className="p-3.5 rounded-xl bg-white dark:bg-[#181C24] border border-[#E2E8F0] dark:border-[#2A303C] hover:border-[#D4AF37]/50 shadow-sm text-left transition-all flex items-center justify-between group cursor-pointer"
                   >
                     <div>
-                      <p className="text-xs font-semibold text-[#0F172A] dark:text-[#F8FAFC] flex items-center gap-1.5">
+                      <p className="text-xs font-semibold text-[#0F172A] dark:text-[#F8FAFC] flex items-center gap-1.5 font-sans">
                         <Activity className="w-3.5 h-3.5 text-[#D4AF37]" />
                         <span>View Analytics & Charts</span>
                       </p>
-                      <p className="text-[10px] font-mono text-[#64748B] dark:text-[#94A3B8] mt-0.5">
+                      <p className="text-[11px] text-[#64748B] dark:text-[#94A3B8] mt-0.5 font-sans">
                         Duration trend, pass rate donut & stage failures
                       </p>
                     </div>
-                    <ArrowRight className="w-3.5 h-3.5 text-[#94A3B8] group-hover:text-[#D4AF37] transition-colors" />
+                    <ArrowRight className="w-4 h-4 text-[#94A3B8] group-hover:text-[#D4AF37] group-hover:translate-x-0.5 transition-all" />
                   </button>
                 </div>
               </div>

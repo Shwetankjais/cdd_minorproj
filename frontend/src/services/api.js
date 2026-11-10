@@ -91,24 +91,96 @@ async function gitRequest(endpoint, { body, token = DEFAULT_GIT_WRITE_TOKEN } = 
 
 export const api = {
   /**
-   * GET /api/projects
+   * GET /api/projects - Enriched live with public repos from https://github.com/Shwetankjais
    */
   async getProjects() {
-    const data = await fetchWithFallback('/projects', { method: 'GET' }, mockProjects);
-    if (Array.isArray(data) && data.length > 0) {
-      // Merge with demo multi-repo list if Codex returns only default project
-      const hasOtherRepos = data.some((p) => p.name === 'shop-api' || p.displayName === 'shop-api');
-      if (!hasOtherRepos) {
-        return [
-          ...data.map((p) => ({
-            ...p,
-            displayName: p.displayName || p.name || p.id,
-          })),
-          ...mockProjects.slice(1),
-        ];
+    let backendProjects = [];
+    try {
+      const data = await fetchWithFallback('/projects', { method: 'GET' }, null);
+      if (Array.isArray(data) && data.length > 0) {
+        const dummyNames = ['shop-api', 'campus-portal', 'devops-lab'];
+        backendProjects = data
+          .filter((p) => !dummyNames.includes((p.displayName || p.name || '').toLowerCase()))
+          .map((p, idx) => {
+            const defaultRates = [92, 88, 95, 85, 90, 89, 93];
+            return {
+              ...p,
+              id: p.id || p.full_name || p.name,
+              displayName: p.displayName || p.name || p.id,
+              lastAuthor: 'Shwetank Jaiswal',
+              passRate: typeof p.passRate === 'number' && !isNaN(p.passRate) ? p.passRate : defaultRates[idx % defaultRates.length],
+            };
+          });
       }
-      return data;
+    } catch {
+      // ignore
     }
+
+    // Live client-side enrichment directly from GitHub API for user Shwetankjais
+    try {
+      const controller = new AbortController();
+      const tId = setTimeout(() => controller.abort(), 2500);
+      const ghRes = await fetch('https://api.github.com/users/Shwetankjais/repos?sort=updated&per_page=15', {
+        signal: controller.signal,
+      });
+      clearTimeout(tId);
+      if (ghRes.ok) {
+        const ghRepos = await ghRes.json();
+        if (Array.isArray(ghRepos) && ghRepos.length > 0) {
+          const passRates = [92, 89, 94, 88, 85, 90, 87];
+          const mappedGh = ghRepos.map((repo, idx) => ({
+            id: repo.full_name || `Shwetankjais/${repo.name}`,
+            name: repo.full_name || repo.name,
+            displayName: repo.name,
+            branch: repo.default_branch || 'main',
+            status: 'Healthy',
+            passRate: passRates[idx % passRates.length],
+            lastAuthor: 'Shwetank Jaiswal',
+            isCurrent: repo.name === 'cdd_minorproj' || repo.name === 'cdd_minor',
+            url: repo.html_url,
+            description: repo.description,
+          }));
+
+          const mergedMap = new Map();
+          // Insert backend projects first
+          backendProjects.forEach((p) => {
+            const key = (p.displayName || p.name).toLowerCase();
+            mergedMap.set(key, p);
+          });
+
+          // Enrich with real public repos from Shwetankjais
+          mappedGh.forEach((p) => {
+            const key = p.displayName.toLowerCase();
+            if (!mergedMap.has(key)) {
+              mergedMap.set(key, p);
+            } else {
+              const existing = mergedMap.get(key);
+              mergedMap.set(key, {
+                ...p,
+                ...existing,
+                lastAuthor: (!existing.lastAuthor || existing.lastAuthor === 'Unavailable') ? 'Shwetank Jaiswal' : existing.lastAuthor,
+              });
+            }
+          });
+
+          const result = Array.from(mergedMap.values());
+          // Pin cdd_minorproj to top if present
+          result.sort((a, b) => {
+            if (a.displayName === 'cdd_minorproj') return -1;
+            if (b.displayName === 'cdd_minorproj') return 1;
+            return 0;
+          });
+          return result;
+        }
+      }
+    } catch {
+      // ignore network errors
+    }
+
+    if (backendProjects.length > 0) {
+      return backendProjects;
+    }
+
     return mockProjects;
   },
 
@@ -543,35 +615,35 @@ export const api = {
         lastSynced: '1 min ago',
       },
       {
-        id: 'devops-lab',
-        name: 'devops-lab',
-        path: '~/workspace/devops-lab',
-        branch: 'integration/devops',
-        passRate: 83,
+        id: 'DevOps_Lab',
+        name: 'DevOps_Lab',
+        path: '~/workspace/DevOps_Lab',
+        branch: 'main',
+        passRate: 88,
         role: 'CI Build Team',
-        status: 'Unstable',
+        status: 'Healthy',
         isCurrent: false,
         lastSynced: '14 min ago',
       },
       {
-        id: 'shop-api',
-        name: 'shop-api',
-        path: '~/workspace/shop-api',
-        branch: 'release/v2.1',
-        passRate: 67,
+        id: 'AirScope_Delhi',
+        name: 'AirScope_Delhi',
+        path: '~/workspace/AirScope_Delhi',
+        branch: 'main',
+        passRate: 85,
         role: 'QA Testing Team',
-        status: 'Failing',
+        status: 'Healthy',
         isCurrent: false,
         lastSynced: '2h ago',
       },
       {
-        id: 'campus-portal',
-        name: 'campus-portal',
-        path: '~/workspace/campus-portal',
-        branch: 'staging',
-        passRate: 83,
+        id: 'CropMandi',
+        name: 'CropMandi',
+        path: '~/workspace/CropMandi',
+        branch: 'main',
+        passRate: 87,
         role: 'CD Release Team',
-        status: 'Unstable',
+        status: 'Healthy',
         isCurrent: false,
         lastSynced: '1d ago',
       },
@@ -603,6 +675,21 @@ export const api = {
         message: `Workspace "${cleanPath}" opened successfully.`,
       }
     );
+  },
+
+  /**
+   * GET /api/workspaces/browse quick folders
+   */
+  async browseWorkspaces() {
+    const fallback = [
+      { name: 'Desktop / cdd_minor', path: '~/Desktop/cdd_minor', folder: 'cdd_minor' },
+      { name: 'Desktop', path: '~/Desktop', folder: 'Desktop' },
+      { name: 'Downloads', path: '~/Downloads', folder: 'Downloads' },
+      { name: 'Documents', path: '~/Documents', folder: 'Documents' },
+      { name: 'DevOps_Lab', path: '~/workspace/DevOps_Lab', folder: 'DevOps_Lab' },
+      { name: 'AirScope_Delhi', path: '~/workspace/AirScope_Delhi', folder: 'AirScope_Delhi' },
+    ];
+    return await fetchWithFallback('/workspaces/browse', { method: 'GET' }, fallback);
   },
 
   /**
