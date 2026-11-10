@@ -1,4 +1,5 @@
 import hashlib
+import os
 import secrets
 from collections import OrderedDict
 from datetime import timedelta
@@ -61,7 +62,9 @@ def new_session(db, profile, github, workspace):
     return token, session
 
 
-BROWSER_COOKIE = "devpulse_session"
+# Cookies are scoped by hostname, not port. Each Compose project needs its own name.
+cookie_scope = os.getenv("DEVPULSE_SESSION_COOKIE_SCOPE")
+BROWSER_COOKIE = f"devpulse_session_{cookie_scope}" if cookie_scope else "devpulse_session"
 
 
 def check_browser_origin(request):

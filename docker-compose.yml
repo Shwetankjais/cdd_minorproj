@@ -26,6 +26,7 @@ services:
     environment:
       DATABASE_URL: postgresql+psycopg://devpulse:${POSTGRES_PASSWORD:-devpulse_local}@db:5432/devpulse
       DEVPULSE_COMPOSE: "1"
+      DEVPULSE_SESSION_COOKIE_SCOPE: ${COMPOSE_PROJECT_NAME}
       DEVPULSE_HOST_HOME: /host
       DEVPULSE_REPO: /workspace/project
       DEVPULSE_WORKSPACE: /workspace/project/workspace

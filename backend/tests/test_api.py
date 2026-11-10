@@ -487,3 +487,22 @@ def test_browser_picker_resolves_legacy_desktop_prefix_across_roots(collaboratio
     assert any(root["folder"] == "Downloads" for root in roots)
     opened = client.post("/api/workspaces/open", json={"path": "~/Desktop/PickedRepo"})
     assert opened.status_code == 200 and opened.json()["path"] == str(folder)
+
+
+def test_compose_session_survives_legacy_cookie_collision(collaboration, monkeypatch):
+    from app.services import session_service
+
+    client, _ = collaboration
+    scoped = "devpulse_session_main"
+    monkeypatch.setattr(session_service, "BROWSER_COOKIE", scoped)
+    login = client.post("/api/auth/login", json={
+        "email": "scope@example.test", "name": "Scope check", "githubRepo": DEFAULT_PROJECT,
+    })
+    assert login.status_code == 200
+    assert scoped in client.cookies
+    client.cookies.set("devpulse_session", "token-from-another-stack")
+    assert client.get("/api/auth/session").status_code == 200
+    assert client.post("/api/auth/logout").status_code == 200
+    assert scoped not in client.cookies
+    assert client.cookies["devpulse_session"] == "token-from-another-stack"
+    assert client.get("/api/auth/session").status_code == 401
