@@ -8,6 +8,7 @@ from pathlib import Path
 from threading import Lock
 from urllib.parse import urlsplit
 
+from .. import config
 from ..config import PROJECT_ROOT, WORKSPACE
 
 WRITE_LOCK = Lock()
@@ -18,7 +19,13 @@ class GitError(Exception):
 
 
 def run_git(path, *args, timeout=15, report_failure=False, github_auth=None):
-    env = dict(os.environ, GIT_TERMINAL_PROMPT="0", GIT_LITERAL_PATHSPECS="1")
+    inherited = os.environ if not config.CLOUD_MODE else {
+        "PATH": os.defpath, "GIT_CONFIG_NOSYSTEM": "1", "GIT_CONFIG_GLOBAL": os.devnull,
+    }
+    env = dict(inherited, GIT_TERMINAL_PROMPT="0", GIT_LITERAL_PATHSPECS="1")
+    cloud_options = ["-c", "protocol.allow=never", "-c", "protocol.https.allow=always",
+                     "-c", "http.followRedirects=false", "-c", "user.name=DevPulse",
+                     "-c", "user.email=devpulse@users.noreply.github.com"] if config.CLOUD_MODE else []
     for key in ("GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE"):
         env.pop(key, None)
     sensitive = []
@@ -38,7 +45,7 @@ def run_git(path, *args, timeout=15, report_failure=False, github_auth=None):
         sensitive = [token, basic]
     try:
         result = subprocess.run(
-            ["git", "-c", "core.hooksPath=/dev/null", "-c", "core.fsmonitor=false",
+            ["git", *cloud_options, "-c", "core.hooksPath=/dev/null", "-c", "core.fsmonitor=false",
              "-c", "protocol.ext.allow=never", "-C", str(path), *args],
             capture_output=True, timeout=timeout, env=env, check=False,
         )
@@ -67,12 +74,24 @@ def repo_path(path=None, *, additional_roots=()):
     return root
 
 
+
+def sandbox_repo_path(path, sandbox):
+    raw = str(path or "")
+    if not raw or "\\" in raw or "\0" in raw or ".." in Path(raw).parts:
+        raise GitError("Select a repository inside your session workspace.")
+    target = (sandbox / raw).resolve()
+    if (target.parent != sandbox or not (target / ".git").is_dir() or (target / ".git").is_symlink()
+            or not target.is_dir()):
+        raise GitError("Select a repository inside your session workspace.")
+    return repo_path(target, additional_roots=(sandbox,))
+
+
 def branch_name(root):
     return os.fsdecode(run_git(root, "branch", "--show-current")).strip()
 
 
-def status(path=None):
-    root = repo_path(path)
+def status(path=None, *, sandbox=None):
+    root = sandbox_repo_path(path, sandbox) if sandbox else repo_path(path)
     entries = run_git(root, "status", "--porcelain=v1", "-z", "--untracked-files=all",
                       "--no-renames").split(b"\0")
     # Diff against the empty tree for a newly initialized repository.
@@ -102,11 +121,11 @@ def status(path=None):
     return {"path": str(root), "branch": branch_name(root), "files": files}
 
 
-def open_or_clone(path, url, branch=None):
+def open_or_clone(path, url, branch=None, *, sandbox=None):
     if bool(path) == bool(url):
         raise GitError("Supply exactly one local path or clone URL.")
     if path:
-        return repo_path(path)
+        return sandbox_repo_path(path, sandbox) if sandbox else repo_path(path)
     parsed = urlsplit(url)
     if (parsed.scheme != "https" or parsed.netloc.lower() != "github.com" or parsed.query
             or parsed.fragment or not re.fullmatch(r"/[\w-]+/[\w.-]+", parsed.path)):
@@ -115,18 +134,21 @@ def open_or_clone(path, url, branch=None):
     if name in {"", ".", ".."} or name.startswith("."):
         raise GitError("The repository name is invalid.")
     with WRITE_LOCK:
-        WORKSPACE.mkdir(parents=True, exist_ok=True)
-        target = WORKSPACE / name
+        workspace = sandbox or WORKSPACE
+        workspace.mkdir(mode=0o700, parents=True, exist_ok=True)
+        target = workspace / name
         if target.exists() or target.is_symlink():
             raise GitError("A workspace entry already uses this name. Open it by path instead.")
         options = (f"--branch={branch}",) if branch else ()
-        run_git(WORKSPACE, "clone", *options, "--", url, name, timeout=120)
-        return repo_path(str(target))
+        if sandbox:
+            options += ("--depth=1", "--no-tags", "--single-branch")
+        run_git(workspace, "clone", *options, "--", url, name, timeout=60 if sandbox else 120)
+        return sandbox_repo_path(target, sandbox) if sandbox else repo_path(str(target))
 
 
-def commit_push(path, files, message, expected_branch=None, *, github_auth=None, github_project=None):
+def commit_push(path, files, message, expected_branch=None, *, github_auth=None, github_project=None, sandbox=None):
     with WRITE_LOCK:
-        root = repo_path(path)
+        root = sandbox_repo_path(path, sandbox) if sandbox else repo_path(path)
         branch = branch_name(root)
         if not branch or (expected_branch and expected_branch != branch):
             raise GitError("Check out the requested branch before committing.")
@@ -146,7 +168,7 @@ def commit_push(path, files, message, expected_branch=None, *, github_auth=None,
             state_path = Path(os.fsdecode(run_git(root, "rev-parse", "--git-path", marker)).rstrip("\n"))
             if (root / state_path).exists():
                 raise GitError("Finish the Git operation already in progress.")
-        changed = {entry["path"] for entry in status(str(root))["files"]}
+        changed = {entry["path"] for entry in status(str(root), sandbox=sandbox)["files"]}
         selected = list(dict.fromkeys(files))
         if any(file not in changed for file in selected):
             raise GitError("Select individual changed paths from Git status.")

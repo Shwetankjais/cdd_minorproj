@@ -5,6 +5,8 @@ from typing import Literal
 
 from fastapi import APIRouter
 
+from .. import config
+
 router = APIRouter(prefix="/api/docker")
 NAMES = ("devpulse-frontend", "devpulse-backend", "devpulse-db")
 
@@ -13,6 +15,8 @@ def inspect_containers():
     found = {}
     available = False
     try:
+        if config.CLOUD_MODE:
+            return {"available": False, "containers": []}
         result = subprocess.run(["docker", "inspect", "--type", "container", *NAMES],
                                 capture_output=True, text=True, timeout=4, check=False)
         containers = json.loads(result.stdout)

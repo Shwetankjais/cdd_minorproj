@@ -228,6 +228,31 @@ npm run dev -- --port 5173 --strictPort
 
 Open [http://localhost:5173](http://localhost:5173/). Stop any Compose services already using ports 5173 or 8000 before starting the local servers.
 
+### Option C: Public deployment with Vercel and Render or Railway
+
+Deploy the API as a standalone Docker service. The hosted service does not need the local Compose file or a host directory mount.
+
+**Render**
+
+1. In Render, create a Blueprint from this repository and select `main`. The root `render.yaml` builds `backend/Dockerfile`, creates a PostgreSQL database, injects its internal connection string, and generates the session encryption secret.
+2. Set `DEVPULSE_CORS_ORIGINS` to the exact HTTPS Vercel origin, such as `https://your-project.vercel.app`. Use a comma-separated list for additional approved origins. Apply the Blueprint.
+3. Open the API service’s public HTTPS URL and verify that `/api/health` returns `{"status":"ok","database":"postgresql"}`. [Render Blueprint reference](https://render.com/docs/blueprint-spec)
+
+**Railway**
+
+1. Create a project from this GitHub repository. Set the API service’s Root Directory to `/backend` and its Config File Path to `/railway.json` so Railway uses the root manifest with the backend Docker build context.
+2. Add a PostgreSQL service. On the API service, set `DATABASE_URL` to a reference such as `${{Postgres.DATABASE_URL}}` (match the actual database service name), set `DEVPULSE_MODE=cloud`, and set `DEVPULSE_CORS_ORIGINS` to the exact Vercel HTTPS origin.
+3. Generate a secret with `openssl rand -hex 32` and add it as the API service variable `DEVPULSE_SESSION_ENCRYPTION_KEY`. Keep the same key across deployments that share the database. Generate a public domain under Networking and check `/api/health`. SQLite works for a disposable single-instance test when `DATABASE_URL` is omitted. Its data is lost if the container filesystem is replaced. [Railway config as code](https://docs.railway.com/config-as-code) · [Railway PostgreSQL](https://docs.railway.com/databases/postgresql)
+
+**Vercel**
+
+1. Import the same GitHub repository, set the Root Directory to `frontend`, select Vite, and use `dist` as the output directory.
+2. Set `VITE_API_URL` to the Render or Railway public HTTPS URL **including** `/api`. Deploy the frontend, add its exact origin to the API allowlist if needed, and redeploy the API. [Vite on Vercel](https://vercel.com/docs/frameworks/frontend/vite)
+3. Before sharing the link, ensure the frontend collects `github_username`, reads `session_token` from login, and sends `Authorization: Bearer <session_token>` on session, project, pipeline, workspace, and Git requests. Clear the token on logout or `401`. Avoid sending the local demo write token. Disable the native host folder picker in hosted mode and use the server clone and workspace list instead.
+4. Sign in as two different GitHub users and confirm each project list matches its own account. A username alone selects public data. A GitHub token verifies account ownership and is required for Git pushes. Keep GitHub tokens and the session encryption key out of Vercel build variables.
+
+The cloud API accepts `github_user` as a public catalog selector when the session has no linked handle. If a session has a linked handle, the selector must match it. GitHub credentials linked to hosted sessions are encrypted in the database. Clones live in disposable server storage scoped to each session, so use one API replica for workspace features. After a restart, reclone as needed. The server blocks host browsing and does not serve local deployment records or Docker details in cloud mode.
+
 ## 10. API Reference
 
 | Method and route | Purpose |
@@ -296,3 +321,4 @@ For a CI walkthrough, trigger a simulation and watch the role handoff progress. 
 | Dashboard integration | Joined the React dashboard and FastAPI stack, fixed Nginx port mapping, and verified the four CI jobs with both application tiers. |
 | Selective Git writes | Added explicit file selection, bearer-token entry, and real commit and push results in the Git drawer. |
 | v1.5.0 | Added bearer sessions, verified GitHub linking, role-aware workspace state, and a chat executor with optional provider tool calling. |
+| Cloud deployment preparation | Scoped GitHub catalogs, pipeline simulations, and clone directories to hosted sessions. Added encrypted GitHub credentials, an origin allowlist, and Render and Railway manifests. |

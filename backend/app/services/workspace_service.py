@@ -5,6 +5,7 @@ from pathlib import Path
 import httpx
 from fastapi import HTTPException
 
+from .. import config
 from ..config import DEFAULT_PROJECT, HOST_HOME
 from ..models import iso_utc, utc_now
 from . import git_service
@@ -110,19 +111,23 @@ def activate(session, workspace):
     return session.workspace
 
 
-def list_workspaces(session, repositories):
+def list_workspaces(session, repositories, owner):
     role = session.profile["role"]
     recent = [item for item in session.recent_workspaces if item.get("kind") != "template"]
+    if config.CLOUD_MODE:
+        recent = [item for item in recent if item.get("project") and owner
+                  and item["project"].partition("/")[0].casefold() == owner.casefold()]
     available = {item["id"]: item for item in recent}
-    default = default_workspace(role)
-    available.setdefault(default["id"], default)
-    for path in list(git_service.WORKSPACE.glob("*"))[:100]:
-        if path.is_dir() and not path.is_symlink():
-            try:
-                item = describe(path, role)
-                available.setdefault(item["id"], item)
-            except (git_service.GitError, OSError):
-                continue
+    if not config.CLOUD_MODE and not session.github.get("username"):
+        default = default_workspace(role)
+        available.setdefault(default["id"], default)
+        for path in list(git_service.WORKSPACE.glob("*"))[:100]:
+            if path.is_dir() and not path.is_symlink():
+                try:
+                    item = describe(path, role)
+                    available.setdefault(item["id"], item)
+                except (git_service.GitError, OSError):
+                    continue
     linked_projects = {item["project"].lower() for item in available.values() if item.get("project")}
     for repo in repositories:
         project = repo["full_name"]
@@ -130,9 +135,12 @@ def list_workspaces(session, repositories):
             key = f"github:{project.lower()}"
             available[key] = {"id": key, "name": repo["name"], "kind": "remote", "team_role": role,
                               "path": None, "branch": repo.get("default_branch"), "remote_url": repo["html_url"],
-                              "project": project, "owner": PUBLIC_OWNER_LABEL}
+                              "project": project, "owner": PUBLIC_OWNER_LABEL if owner and owner.casefold() == "shwetankjais" else owner}
     return {"workspaces": list(available.values()), "recent_workspaces": recent,
-            "active_workspace": session.workspace if (session.workspace or {}).get("kind") != "template" else None,
+            "active_workspace": session.workspace if (
+                session.workspace in recent or not config.CLOUD_MODE and
+                (session.workspace or {}).get("kind") != "template"
+            ) else None,
             "active_role": (session.workspace or {}).get("team_role", role)}
 
 

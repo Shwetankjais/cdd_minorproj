@@ -4,6 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 
+from . import config
 from .config import DATABASE_URL
 from .database import Base, make_engine, session_scope
 from .routers import ai_agent, auth, deployments, docker_monitor, git_control, pipeline, workspaces
@@ -18,8 +19,9 @@ def create_app(database_url=DATABASE_URL, github=None):
         app.state.github = github or GitHubService()
         try:
             Base.metadata.create_all(app.state.engine)
-            with session_scope(app.state.engine) as db:
-                seed(db)
+            if not config.CLOUD_MODE:
+                with session_scope(app.state.engine) as db:
+                    seed(db)
             yield
         finally:
             if github is None:
@@ -27,7 +29,8 @@ def create_app(database_url=DATABASE_URL, github=None):
             app.state.engine.dispose()
 
     app = FastAPI(title="DevPulse API", version="1.5.0", lifespan=lifespan)
-    app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
+    app.add_middleware(CORSMiddleware, allow_origins=config.CORS_ORIGINS, allow_credentials=not config.CLOUD_MODE,
+                       allow_methods=["GET", "POST"], allow_headers=["Authorization", "Content-Type"])
     for router in (pipeline.router, deployments.router, git_control.router, docker_monitor.router,
                    auth.router, workspaces.router, ai_agent.router):
         app.include_router(router)

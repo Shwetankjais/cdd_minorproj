@@ -8,10 +8,10 @@ from fastapi import HTTPException
 from sqlalchemy import text as sql
 from sqlalchemy.exc import SQLAlchemyError
 
-from ..config import DEFAULT_PROJECT
+from .. import config
 from ..routers import docker_monitor, pipeline
 from ..schemas import SimulationRequest
-from . import agent_model, git_service, workspace_service
+from . import agent_model, cloud_workspace, git_service, workspace_service
 from .session_service import linked_credential
 
 INTENTS = {
@@ -31,7 +31,7 @@ def reply(message, action=None, **data):
     return {"message": message, "reply": message, "action_triggered": action, **data}
 
 
-def commit(text, body, session, path):
+def commit(text, body, session, path, request):
     text = re.sub(r"^(?:/commit|commit and push)\s*", "", text, flags=re.I)
     message, separator, paths = text.partition(" -- ")
     files = body.files or (shlex.split(paths) if separator else [])
@@ -39,12 +39,15 @@ def commit(text, body, session, path):
         return reply("Choose the exact files and a message, for example: /commit Update docs -- README.md")
     if len(files) > 200 or len(message) > 500:
         raise HTTPException(422, "Use at most 200 files and a commit message of up to 500 characters.")
-    credential = linked_credential(session)
-    github = session.github
-    if not (credential and github.get("verified") and github.get("can_push")):
-        raise HTTPException(403, "Reconnect GitHub with a token that can push to the collaborative repository.")
-    result = git_service.commit_push(path, files, message.strip(), github_auth=(github["username"], credential),
-                                     github_project=github["project"])
+    if config.CLOUD_MODE:
+        result = cloud_workspace.commit(session, request.app.state.github, path, files, message.strip())
+    else:
+        credential = linked_credential(session)
+        github = session.github
+        if not (credential and github.get("verified") and github.get("can_push")):
+            raise HTTPException(403, "Reconnect GitHub with a token that can push to the collaborative repository.")
+        result = git_service.commit_push(path, files, message.strip(), github_auth=(github["username"], credential),
+                                         github_project=github["project"])
     message = f"Commit {result['commit_sha']} pushed." if result["pushed"] else (
         f"Commit {result['commit_sha']} saved locally. Push failed: {result['push_error']}")
     return reply(message, "COMMIT_PUSH", **{key: value for key, value in result.items() if key != "message"})
@@ -76,15 +79,22 @@ def docker_status(request):
 def execute(body, session, request, db):
     text = body.message.strip()
     current = session.workspace or {}
-    project = body.project or current.get("project") or DEFAULT_PROJECT
+    project = body.project or current.get("project")
     path = body.workspace_path or current.get("path")
     if re.match(r"^(?:/commit|commit and push)(?:\s|$)", text, re.I):
         if not path:
             raise HTTPException(409, "Open a local workspace before committing.")
-        return commit(text, body, session, path)
+        if not config.CLOUD_MODE and not cloud_workspace.local_request(request):
+            raise HTTPException(403, "Use cloud mode for hosted Git requests.")
+        return commit(text, body, session, path, request)
     connect = re.fullmatch(r"connect repo\s+(\S+)", text, re.I)
     if connect:
-        workspace = workspace_service.clone_workspace(connect[1], "main", session.profile["role"])
+        if config.CLOUD_MODE:
+            workspace = cloud_workspace.clone(session, request.app.state.github, connect[1])
+        elif cloud_workspace.local_request(request):
+            workspace = workspace_service.clone_workspace(connect[1], "main", session.profile["role"])
+        else:
+            raise HTTPException(403, "Use cloud mode for hosted Git requests.")
         return reply(f"Connected {workspace['name']}.", "SWITCH_TAB", target_view="workspaces",
                      workspace=workspace_service.activate(session, workspace))
     nav = re.fullmatch(r"(?:go to|open|switch to)\s+(?:the\s+)?([a-z]+)", text, re.I)
@@ -99,21 +109,30 @@ def execute(body, session, request, db):
         action, engine = agent_model.select_tool(text, body.history)
 
     if action == "simulate":
-        run = pipeline.simulate(SimulationRequest(project=project), db)
+        project = pipeline.resolve_project(request, project, session)
+        run = pipeline.start_simulation(SimulationRequest(project=project), db, project, session)
         return reply("Started live pipeline run! Tracking 0% -> 100% and will pre-notify QA/CD at 80%.",
                      "SIMULATE_PIPELINE", run=run)
     if action == "status":
         if not path:
             return reply("This workspace is remote-only. Open or clone a local repository to inspect Git changes.")
-        status = git_service.status(path)
+        if config.CLOUD_MODE:
+            workspace = cloud_workspace.describe(path, session)
+            status = {**git_service.status(workspace["path"], sandbox=cloud_workspace.sandbox(session)),
+                      "path": workspace["path"]}
+        elif cloud_workspace.local_request(request):
+            status = git_service.status(path)
+        else:
+            raise HTTPException(403, "Use cloud mode for hosted Git requests.")
         lines = [f"{item['status']} {item['path']}" for item in status["files"]]
         return reply("\n".join(lines) or "The working tree is clean.", "GIT_STATUS", git=status, engine=engine)
     if action == "explain":
-        latest = next((run for run in pipeline.history(request, db, project)
+        project = pipeline.resolve_project(request, project, session)
+        latest = next((run for run in pipeline.history(request, db, project, session)
                        if run["conclusion"] in FAILURES and run["source"] != "commit_estimate"), None)
         if not latest:
             return reply("No failed pipeline run was found.", "NAVIGATE_DIAGNOSTICS", target_view="errors")
-        diagnosis = pipeline.error_summary(latest["id"], request, project, db)
+        diagnosis = pipeline.error_summary(latest["id"], request, project, db, session)
         return reply(f"Failed stage: {diagnosis['failed_stage']}\nCause: {diagnosis['plain_english_reason']}\n"
                      f"Suggested fix: {diagnosis['suggested_fix']}",
                      "NAVIGATE_DIAGNOSTICS", target_view="errors", run_id=latest["id"], diagnosis=diagnosis,
@@ -123,7 +142,7 @@ def execute(body, session, request, db):
         lines = [f"{item['name']}: {item['status']}" for item in status["containers"]]
         return reply("\n".join(lines), "DOCKER_STATUS", docker=status, engine=engine)
     if action == "handoff":
-        run = pipeline.live(request, project, db)
+        run = pipeline.live(request, project, db, session)
         team = next(stage["team"] for stage in run["stages"] if stage["name"] == run["current_stage"])
         alert = run["handoff_alert"]
         note = alert["message"] if alert else "No handoff alert is active."

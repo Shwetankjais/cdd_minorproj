@@ -1,14 +1,17 @@
-from typing import Literal
+from typing import Annotated, Literal
 
-from pydantic import AliasChoices, BaseModel, Field, SecretStr, field_validator, model_validator
+from pydantic import AliasChoices, BaseModel, Field, SecretStr, StringConstraints, field_validator, model_validator
 
 from . import ProjectName
 
 TeamRole = Literal["Developer", "CI Team", "QA Testing Team", "CD Release Team"]
 
 
+GitHubUsername = Annotated[str, StringConstraints(max_length=39, pattern=r"^[A-Za-z0-9][A-Za-z0-9-]*$")]
+
+
 class GitHubConnection(BaseModel):
-    github_username: str | None = Field(default=None, max_length=39, pattern=r"^[A-Za-z0-9][A-Za-z0-9-]*$")
+    github_username: GitHubUsername | None = None
     github_token: SecretStr | None = None
 
 

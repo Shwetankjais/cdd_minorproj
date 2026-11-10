@@ -15,7 +15,7 @@ from app.services.github_service import PUBLIC_OWNER_LABEL, GitHubService, norma
 
 
 class StubGitHub:
-    def repositories(self):
+    def repositories(self, owner="Shwetankjais"):
         return [
             {"full_name": DEFAULT_PROJECT, "name": "cdd_minorproj", "default_branch": "main",
              "html_url": f"https://github.com/{DEFAULT_PROJECT}"},
@@ -45,7 +45,7 @@ class StubGitHub:
 @pytest.fixture
 def client(tmp_path):
     app = create_app(f"sqlite:///{tmp_path / 'test.db'}", github=StubGitHub())
-    with TestClient(app) as client:
+    with TestClient(app, base_url="http://localhost", client=("127.0.0.1", 50000)) as client:
         yield client
 
 
@@ -126,9 +126,9 @@ def test_deployment_filters_and_signed_webhook(client, monkeypatch):
 def test_seed_is_idempotent(tmp_path):
     database = f"sqlite:///{tmp_path / 'test.db'}"
     app = create_app(database, github=StubGitHub())
-    with TestClient(app) as client:
+    with TestClient(app, base_url="http://localhost", client=("127.0.0.1", 50000)) as client:
         before = client.get("/api/pipeline/runs").json()
-    with TestClient(app) as client:
+    with TestClient(app, base_url="http://localhost", client=("127.0.0.1", 50000)) as client:
         assert client.get("/api/pipeline/runs").json() == before
 
 
@@ -199,7 +199,6 @@ def collaboration(client, monkeypatch, tmp_path):
 def login_as(client, name="Asha", role="QA Testing Team"):
     response = client.post("/api/auth/login", json={
         "email": f"{name.lower()}@example.com", "name": name, "role": role,
-        "github_username": "asha",
     })
     assert response.status_code == 200
     result = response.json()
@@ -369,7 +368,7 @@ def test_browser_contract_uses_same_origin_cookie(collaboration):
     client, _ = collaboration
     body = {"email": "browser@example.test", "name": "Browser User", "role": "CI Build Team",
             "githubRepo": DEFAULT_PROJECT}
-    same_origin = {"Origin": "http://testserver", "Sec-Fetch-Site": "same-origin"}
+    same_origin = {"Origin": "http://localhost", "Sec-Fetch-Site": "same-origin"}
     cross_origin = {"Origin": "http://elsewhere.test", "Sec-Fetch-Site": "cross-site"}
     assert client.post("/api/auth/login", json=body, headers=cross_origin).status_code == 403
     login = client.post("/api/auth/login", json=body, headers=same_origin)
@@ -506,3 +505,146 @@ def test_compose_session_survives_legacy_cookie_collision(collaboration, monkeyp
     assert scoped not in client.cookies
     assert client.cookies["devpulse_session"] == "token-from-another-stack"
     assert client.get("/api/auth/session").status_code == 401
+
+
+@pytest.fixture
+def hosted(tmp_path, monkeypatch):
+    import httpx
+    from app import config
+    from app.services import session_service
+
+    monkeypatch.setattr(config, "CLOUD_MODE", True)
+    monkeypatch.setattr(config, "CLOUD_WORKSPACE_ROOT", tmp_path / "workspaces")
+    monkeypatch.setattr(config, "SESSION_ENCRYPTION_KEY", "test-key-only-" * 3)
+    monkeypatch.setattr(config, "CORS_ORIGINS", [*config.CORS_ORIGINS, "https://devpulse-test.vercel.app"])
+
+    real_client = httpx.Client
+
+    def identity(request):
+        if request.url.path == "/user":
+            identities = {"Bearer fixture-a": "userA", "Bearer fixture-b": "userB"}
+            owner = identities.get(request.headers.get("Authorization"))
+            return httpx.Response(200, json={"login": owner}) if owner else httpx.Response(401)
+        return httpx.Response(200, json={"login": request.url.path.split("/")[-1]})
+
+    monkeypatch.setattr(session_service.httpx, "Client", lambda **kwargs: real_client(
+        transport=httpx.MockTransport(identity), **kwargs))
+
+    class HostedGitHub:
+        def repositories(self, owner):
+            return [{"full_name": f"{owner}/repo", "name": "repo", "default_branch": "main",
+                     "html_url": f"https://github.com/{owner}/repo"}]
+
+        def is_public(self, project):
+            return project.casefold() in {"usera/repo", "userb/repo"}
+
+        def runs(self, project):
+            return [normalize_run({"id": 22, "status": "completed", "conclusion": "success",
+                                   "created_at": "2026-01-02T12:00:00Z",
+                                   "updated_at": "2026-01-02T12:01:00Z",
+                                   "display_title": project}, project)]
+
+    app = create_app(f"sqlite:///{tmp_path / 'cloud.db'}", github=HostedGitHub())
+    with TestClient(app, base_url="https://api.example.test") as client:
+        yield client, tmp_path
+
+
+def hosted_login(client, username, token=None):
+    payload = {"email": f"{username}@example.test", "name": username, "github_username": username}
+    if token:
+        payload["github_token"] = token
+    response = client.post("/api/auth/login", json=payload)
+    assert response.status_code == 200, response.text
+    return {"Authorization": f"Bearer {response.json()['session_token']}"}
+
+
+def test_hosted_sessions_isolate_repos_credentials_and_simulations(hosted):
+    from app.database import session_scope
+    from app.models.user_session import UserSession
+    from app.services.session_service import token_digest
+
+    client, _ = hosted
+    a = hosted_login(client, "userA", "fixture-a")
+    b = hosted_login(client, "userB", "fixture-b")
+    for header, owner, other in ((a, "userA", "userB"), (b, "userB", "userA")):
+        session = client.get("/api/auth/session", headers=header).json()
+        assert session["github"]["username"] == owner
+        assert "encrypted_token" not in session["github"]
+        assert [repo["id"] for repo in client.get("/api/projects", headers=header).json()] == [f"{owner}/repo"]
+        assert [ws["project"] for ws in client.get("/api/workspaces", headers=header).json()["workspaces"]] == [f"{owner}/repo"]
+        summary = client.get("/api/pipeline/summary", headers=header, params={"github_user": owner})
+        assert summary.json()["project"] == f"{owner}/repo"
+        assert client.get("/api/projects", headers=header, params={"github_user": other}).status_code == 403
+        assert client.get("/api/pipeline/runs", headers=header,
+                          params={"project": f"{other}/repo"}).status_code == 403
+        assert client.get("/api/pipeline/runs", headers=header,
+                          params={"project": f"{owner}/private"}).status_code == 404
+
+    with session_scope(client.app.state.engine) as db:
+        stored = db.get(UserSession, token_digest(a["Authorization"].split()[1])).github
+        assert stored["encrypted_token"] and "fixture-a" not in str(stored)
+
+    first = client.post("/api/pipeline/simulate", headers=a, json={"project": "userA/repo"}).json()
+    second_session = hosted_login(client, "userA")
+    assert first["id"] in {run["id"] for run in client.get("/api/pipeline/runs", headers=a).json()}
+    assert first["id"] not in {
+        run["id"] for run in client.get("/api/pipeline/runs", headers=second_session).json()
+    }
+    assert client.get("/api/projects").status_code == 401
+    assert client.post("/api/auth/connect-github", headers=b, json={
+        "github_username": "userB", "github_token": "fixture-a",
+    }).status_code == 422
+    assert client.post("/api/auth/logout", headers=a).status_code == 200
+    assert client.get("/api/auth/session", headers=a).status_code == 401
+    assert client.get("/api/auth/session", headers=b).status_code == 200
+
+
+def test_hosted_git_sandbox_and_cors(hosted, monkeypatch):
+    from app.services import git_service
+
+    client, tmp_path = hosted
+    a = hosted_login(client, "userA", "fixture-a")
+    b = hosted_login(client, "userB")
+    roots = []
+
+    def clone(path, url, branch, *, sandbox):
+        roots.append(sandbox)
+        repo = sandbox / "repo"
+        repo.mkdir(parents=True)
+        git_service.run_git(repo, "init", "-b", "main")
+        git_service.run_git(repo, "remote", "add", "origin", url)
+        return repo
+
+    monkeypatch.setattr(git_service, "open_or_clone", clone)
+    for header, owner in ((a, "userA"), (b, "userB")):
+        response = client.post("/api/workspaces/clone", headers=header, json={
+            "repo_url": f"https://github.com/{owner}/repo.git",
+        })
+        assert response.status_code == 200, response.text
+        assert response.json()["path"] == "repo"
+    assert roots[0] != roots[1] and all(root.parent == tmp_path / "workspaces" for root in roots)
+    for unsafe in (str(roots[0] / "repo"), "../repo", "/Users/example/Downloads"):
+        assert client.post("/api/workspaces/open", headers=b, json={"path": unsafe}).status_code == 400
+        assert client.get("/api/git/status", headers=b, params={"path": unsafe}).status_code == 400
+    assert client.get("/api/workspaces/browse", headers=a).status_code == 403
+    assert client.post("/api/workspaces/clone", headers=b, json={
+        "repo_url": "https://github.com/userA/repo.git",
+    }).status_code == 403
+    body = {"files": ["README.md"], "message": "test"}
+    assert client.post("/api/git/commit-push", json=body, headers={
+        "Authorization": "Bearer devpulse-viva-token",
+    }).status_code == 401
+    assert client.post("/api/git/commit-push", json=body, headers=b).status_code == 403
+
+    def push(path, files, message, branch, *, sandbox, github_auth, github_project):
+        assert sandbox == roots[0] and github_auth == ("userA", "fixture-a")
+        assert github_project == "userA/repo"
+        return {"pushed": True}
+
+    monkeypatch.setattr(git_service, "commit_push", push)
+    assert client.post("/api/git/commit-push", json=body, headers=a).json()["pushed"]
+    preflight = {"Access-Control-Request-Method": "POST", "Access-Control-Request-Headers": "authorization"}
+    allowed = client.options("/api/auth/login", headers={**preflight, "Origin": "https://devpulse-test.vercel.app"})
+    rejected = client.options("/api/auth/login", headers={**preflight, "Origin": "https://another.vercel.app"})
+    assert allowed.headers["access-control-allow-origin"] == "https://devpulse-test.vercel.app"
+    assert "access-control-allow-origin" not in rejected.headers

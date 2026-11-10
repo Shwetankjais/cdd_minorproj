@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from .. import config
 from ..config import WEBHOOK_SECRET
 from ..database import get_db
 from ..models import Deployment, iso_utc, utc_now
@@ -17,6 +18,8 @@ router = APIRouter(prefix="/api")
 
 @router.get("/deployments")
 def deployments(hours: Literal["1", "2", "24", "all"] = "all", db: Session = Depends(get_db)):
+    if config.CLOUD_MODE:
+        return []
     query = select(Deployment).order_by(Deployment.created_at.desc())
     if hours != "all":
         query = query.where(Deployment.created_at >= utc_now() - timedelta(hours=int(hours)))

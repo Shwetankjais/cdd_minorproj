@@ -7,6 +7,7 @@ from time import monotonic
 
 import httpx
 
+from .. import config
 from ..config import GITHUB_TOKEN
 from .handoff_service import job_progress, simulation_progress
 
@@ -17,7 +18,7 @@ PUBLIC_OWNER_LABEL = "Shwetank Jaiswal (@Shwetankjais)"
 class GitHubService:
     def __init__(self):
         headers = {"Accept": "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28"}
-        if GITHUB_TOKEN:
+        if GITHUB_TOKEN and not config.CLOUD_MODE:
             headers["Authorization"] = f"Bearer {GITHUB_TOKEN}"
         self.client = httpx.Client(base_url="https://api.github.com", headers=headers, timeout=3)
         self.cache = OrderedDict()
@@ -41,8 +42,8 @@ class GitHubService:
                 self.cache.popitem(last=False)
         return data
 
-    def repositories(self):
-        endpoint = f"/users/{PUBLIC_OWNER}/repos?sort=updated&per_page=20"
+    def repositories(self, owner=PUBLIC_OWNER):
+        endpoint = f"/users/{owner}/repos?sort=updated&per_page=20"
         result = {}
         page = 1
         while True:
@@ -52,16 +53,18 @@ class GitHubService:
             previous = len(result)
             for repo in batch:
                 full_name = repo["full_name"]
-                if not repo.get("private") and full_name.split("/")[0].lower() == PUBLIC_OWNER.lower():
+                if not repo.get("private") and full_name.split("/")[0].lower() == owner.lower():
                     result[full_name.lower()] = repo
             if len(batch) < 20 or len(result) == previous:
                 break
             page += 1
         return list(result.values())
 
+    def is_public(self, project):
+        repo = self.get(f"/repos/{project}", ttl=300)
+        return bool(repo.get("full_name", "").casefold() == project.casefold() and repo.get("private") is False)
+
     def commit_estimates(self, project):
-        if project.split("/")[0].lower() != PUBLIC_OWNER.lower():
-            return []
         repo = self.get(f"/repos/{project}", ttl=300)
         if not repo.get("full_name") or repo.get("private"):
             return []
@@ -134,5 +137,5 @@ def estimate_commit(item, project, branch):
             "branch": branch, "status": "completed", "conclusion": "success" if success else "failure",
             "created_at": committer.get("date") or author["date"], "duration_seconds": 45 + fingerprint % 196,
             "commit_sha": sha, "url": item["html_url"],
-            "author": author.get("name") or (item.get("author") or {}).get("login") or PUBLIC_OWNER_LABEL,
+            "author": author.get("name") or (item.get("author") or {}).get("login") or project.partition("/")[0],
             **stage}
