@@ -57,9 +57,9 @@ def run_git(path, *args, timeout=15, report_failure=False, github_auth=None):
     return result.stdout
 
 
-def repo_path(path=None):
+def repo_path(path=None, *, additional_roots=()):
     candidate = Path(path).expanduser().resolve() if path else PROJECT_ROOT
-    if candidate != PROJECT_ROOT and not candidate.is_relative_to(WORKSPACE):
+    if candidate != PROJECT_ROOT and not any(candidate.is_relative_to(root) for root in (WORKSPACE, *additional_roots)):
         raise GitError("Choose the project root or a repository inside the configured workspace.")
     root = Path(os.fsdecode(run_git(candidate, "rev-parse", "--show-toplevel").rstrip(b"\n"))).resolve()
     if root != candidate:

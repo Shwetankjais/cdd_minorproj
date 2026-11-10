@@ -110,7 +110,7 @@ def execute(body, session, request, db):
         return reply("\n".join(lines) or "The working tree is clean.", "GIT_STATUS", git=status, engine=engine)
     if action == "explain":
         latest = next((run for run in pipeline.history(request, db, project)
-                       if run["conclusion"] in FAILURES), None)
+                       if run["conclusion"] in FAILURES and run["source"] != "commit_estimate"), None)
         if not latest:
             return reply("No failed pipeline run was found.", "NAVIGATE_DIAGNOSTICS", target_view="errors")
         diagnosis = pipeline.error_summary(latest["id"], request, project, db)

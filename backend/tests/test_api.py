@@ -2,6 +2,7 @@ import hashlib
 import hmac
 import json
 from datetime import timedelta
+from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
@@ -10,10 +11,21 @@ from app.config import DEFAULT_PROJECT
 from app.main import create_app
 from app.models import utc_now
 from app.routers import deployments, pipeline
-from app.services.github_service import normalize_run
+from app.services.github_service import PUBLIC_OWNER_LABEL, GitHubService, normalize_run
 
 
 class StubGitHub:
+    def repositories(self):
+        return [
+            {"full_name": DEFAULT_PROJECT, "name": "cdd_minorproj", "default_branch": "main",
+             "html_url": f"https://github.com/{DEFAULT_PROJECT}"},
+            {"full_name": "Shwetankjais/DevOps_Lab", "name": "DevOps_Lab", "default_branch": "main",
+             "html_url": "https://github.com/Shwetankjais/DevOps_Lab"},
+        ]
+
+    def commit_estimates(self, project):
+        return []
+
     def runs(self, project):
         if project == DEFAULT_PROJECT:
             return []
@@ -43,7 +55,8 @@ def test_health_projects_and_seeded_history(client):
     assert project["id"] == DEFAULT_PROJECT
     assert project["displayName"] == "cdd_minorproj"
     assert project["isCurrent"]
-    assert 0 <= project["passRate"] <= 100
+    assert project["lastAuthor"] == PUBLIC_OWNER_LABEL
+    assert {item["name"] for item in client.get("/api/projects").json()} == {"cdd_minorproj", "DevOps_Lab"}
     summary = client.get("/api/pipeline/summary").json()
     assert summary["total_runs"] == 10
     runs = client.get("/api/pipeline/runs", params={"status": "failure", "search": "login"}).json()
@@ -55,13 +68,13 @@ def test_health_projects_and_seeded_history(client):
     assert "401" in explanation["plain_english_reason"]
 
 
-def test_merge_live_run_with_demo_history(client, monkeypatch):
+def test_live_history_replaces_demo_rows(client, monkeypatch):
     github = client.app.state.github
     external = github.runs("test/demo")[0]
     monkeypatch.setattr(github, "runs", lambda project: [{**external, "project": project}])
     runs = client.get("/api/pipeline/runs").json()
-    assert len(runs) == 11
-    assert {run["source"] for run in runs} == {"seed", "github"}
+    assert len(runs) == 1
+    assert {run["source"] for run in runs} == {"github"}
 
 
 def test_live_github_progress_and_project_validation(client):
@@ -220,7 +233,8 @@ def test_workspaces_open_clone_and_isolate_recent_state(collaboration, monkeypat
     teammate, _ = login_as(client, "Sam", "CI Team")
     assert client.get("/api/workspaces").status_code == 401
     listed = client.get("/api/workspaces", headers=headers).json()["workspaces"]
-    assert {item["name"] for item in listed} >= {"cdd_minor", "devops-lab", "shop-api"}
+    assert {item["name"] for item in listed} >= {"cdd_minor", "DevOps_Lab"}
+    assert not {"devops-lab", "shop-api", "campus-portal"} & {item["name"] for item in listed}
     assert client.post("/api/workspaces/open", headers=headers, json={"path": "/etc"}).status_code == 400
     folder = workspace / "sandbox"
     folder.mkdir()
@@ -373,3 +387,86 @@ def test_browser_contract_uses_same_origin_cookie(collaboration):
     assert client.get("/api/pipeline/live").json()["id"] == chat["run"]["id"]
     assert client.post("/api/auth/logout", headers=same_origin).json()["logged_out"]
     assert client.get("/api/auth/session").status_code == 401
+
+
+def test_github_catalog_paginates_and_keeps_only_public_owner_repositories():
+    import httpx
+
+    def repo(name, owner="Shwetankjais", private=False):
+        return {"full_name": f"{owner}/{name}", "private": private, "name": name}
+
+    def respond(request):
+        assert request.url.path == "/users/Shwetankjais/repos"
+        assert request.url.params["sort"] == "updated"
+        assert request.url.params["per_page"] == "20"
+        if request.url.params.get("page") == "2":
+            return httpx.Response(200, json=[repo("more"), repo("hidden", private=True), repo("other", "another")])
+        return httpx.Response(200, json=[repo(f"repo-{i}") for i in range(20)])
+
+    github = GitHubService()
+    github.client.close()
+    with httpx.Client(base_url="https://api.github.com", transport=httpx.MockTransport(respond)) as client:
+        github.client = client
+        names = {item["name"] for item in github.repositories()}
+    assert len(names) == 21 and "more" in names
+
+
+def test_pipeline_uses_recent_commits_for_repo_without_workflow_runs(client, monkeypatch):
+    import httpx
+
+    sha = "1234567890abcdef1234567890abcdef12345678"
+    project = "Shwetankjais/DevOps_Lab"
+
+    def respond(request):
+        path = request.url.path
+        if path.endswith("/actions/runs"):
+            return httpx.Response(200, json={"workflow_runs": []})
+        if path.endswith("/commits"):
+            return httpx.Response(200, json=[{
+                "sha": sha, "html_url": f"https://github.com/{project}/commit/{sha}",
+                "commit": {"message": "Add lab exercise", "author": {"name": "Shwetank Jaiswal"},
+                           "committer": {"date": "2026-11-09T05:00:00Z"}},
+            }])
+        assert path == f"/repos/{project}"
+        return httpx.Response(200, json={"full_name": project, "default_branch": "lab", "private": False})
+
+    github = GitHubService()
+    github.client.close()
+    with httpx.Client(base_url="https://api.github.com", transport=httpx.MockTransport(respond)) as http:
+        github.client = http
+        monkeypatch.setattr(client.app.state, "github", github)
+        rows = client.get("/api/pipeline/runs", params={"project": project}).json()
+        assert rows[0]["commit_sha"] == sha
+        assert rows[0]["branch"] == "lab" and rows[0]["title"] == "Estimated · Add lab exercise"
+        assert rows[0]["source"] == "commit_estimate" and rows[0]["estimated"]
+        assert client.get("/api/pipeline/summary", params={"project": project}).json()["estimated"]
+        assert client.get(f"/api/pipeline/error-summary/{sha}", params={"project": project}).status_code == 409
+
+
+def test_authenticated_folder_browse_and_open_by_name(collaboration, monkeypatch, tmp_path):
+    from app.services import git_service, workspace_service
+
+    client, _ = collaboration
+    home = tmp_path / "host"
+    for root in ("Desktop", "Documents", "Downloads"):
+        (home / root).mkdir(parents=True)
+    repo = home / "Desktop" / "DevOps_Lab"
+    repo.mkdir()
+    git_service.run_git(repo, "init", "-b", "main")
+    (home / "Desktop" / "unlisted.txt").touch()
+    (home / "Desktop" / "escape").symlink_to(tmp_path)
+    monkeypatch.setattr(workspace_service, "HOST_HOME", home)
+    assert client.get("/api/workspaces/browse").status_code == 401
+    headers, _ = login_as(client)
+    folders = client.get("/api/workspaces/browse", headers=headers, params={"dir": "~/Desktop"}).json()["folders"]
+    assert [item["name"] for item in folders] == ["DevOps_Lab"]
+    assert client.get("/api/workspaces/browse", headers=headers, params={"dir": "Desktop/escape"}).status_code == 400
+    response = client.post("/api/workspaces/open", headers=headers, json={"folder_name": "DevOps_Lab"})
+    assert response.status_code == 200 and response.json()["path"] == str(repo)
+    assert response.json()["branch"] == "main"
+    (home / "Documents" / "DevOps_Lab").mkdir()
+    assert client.post("/api/workspaces/open", headers=headers, json={"folder_name": "DevOps_Lab"}).status_code == 409
+    chosen = client.post("/api/workspaces/open", headers=headers, json={
+        "folder_name": "DevOps_Lab", "dir": "Documents",
+    }).json()
+    assert chosen["kind"] == "folder" and not (Path(chosen["path"]) / ".git").exists()

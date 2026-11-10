@@ -2,6 +2,7 @@
 
 from datetime import timedelta
 
+from sqlalchemy import delete, func
 from sqlalchemy.dialects.postgresql import insert as postgres_insert
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 
@@ -31,6 +32,13 @@ def insert_once(db, model, rows):
 
 
 def seed(db):
+    # Remove legacy sample projects without deleting real or simulated user activity.
+    legacy_projects = ("shop-api", "campus-portal", "devops-lab")
+    legacy_ids = (*legacy_projects, *(f"shwetankjais/{name}" for name in legacy_projects))
+    db.execute(delete(PipelineRun).where(PipelineRun.source == "seed",
+                                        func.lower(PipelineRun.project).in_(legacy_ids)))
+    db.execute(delete(Deployment).where(Deployment.id.like("demo-%"),
+                                       func.lower(Deployment.project).in_(legacy_ids)))
     now = utc_now()
     runs = []
     for index, (minutes, result, title, branch, percent, log) in enumerate(SCENARIOS):

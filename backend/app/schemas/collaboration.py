@@ -25,7 +25,9 @@ class Login(GitHubConnection):
 
 
 class OpenWorkspace(BaseModel):
-    path: str = Field(min_length=1, max_length=4096)
+    path: str | None = Field(default=None, min_length=1, max_length=4096)
+    folder_name: str | None = Field(default=None, min_length=1, max_length=255)
+    dir: str | None = Field(default=None, min_length=1, max_length=4096)
     name: str | None = Field(default=None, max_length=120)
 
 

@@ -26,6 +26,7 @@ services:
     environment:
       DATABASE_URL: postgresql+psycopg://devpulse:${POSTGRES_PASSWORD:-devpulse_local}@db:5432/devpulse
       DEVPULSE_COMPOSE: "1"
+      DEVPULSE_HOST_HOME: /host
       DEVPULSE_REPO: /workspace/project
       DEVPULSE_WORKSPACE: /workspace/project/workspace
       GIT_WRITE_TOKEN: ${GIT_WRITE_TOKEN-devpulse-viva-token}
@@ -36,6 +37,9 @@ services:
       GIT_CONFIG_VALUE_1: "true"
     volumes:
       - .:/workspace/project
+      - "${DEVPULSE_HOST_HOME:-${HOME:-${USERPROFILE}}}/Desktop:/host/Desktop:rw"
+      - "${DEVPULSE_HOST_HOME:-${HOME:-${USERPROFILE}}}/Downloads:/host/Downloads:rw"
+      - "${DEVPULSE_HOST_HOME:-${HOME:-${USERPROFILE}}}/Documents:/host/Documents:rw"
     depends_on:
       db:
         condition: service_healthy

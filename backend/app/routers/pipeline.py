@@ -10,35 +10,30 @@ from ..database import get_db
 from ..models import PipelineRun, iso_utc, utc_now
 from ..schemas import ProjectName, SimulationRequest
 from ..services.error_analyzer import analyze
+from ..services.github_service import PUBLIC_OWNER_LABEL
 from ..services.handoff_service import job_progress, simulation_progress, stage_index
 
 router = APIRouter(prefix="/api")
 
 
 @router.get("/projects")
-def projects(db: Session = Depends(get_db)):
-    rows = db.execute(
-        select(PipelineRun.project, PipelineRun.payload).order_by(PipelineRun.created_at.desc())
-    )
-    history_by_project = {DEFAULT_PROJECT: []}
-    for project, payload in rows:
-        history_by_project.setdefault(project, []).append(payload)
+def projects(request: Request):
+    github = request.app.state.github
+    catalog = github.repositories()
+    # Keep the configured repository selectable when GitHub is temporarily unavailable.
+    if not catalog:
+        catalog = [{"full_name": DEFAULT_PROJECT, "name": DEFAULT_PROJECT.split("/")[1]}]
     result = []
-    for name, history in sorted(history_by_project.items()):
-        display_name = name.split("/")[1]
-        completed = [run for run in history if run.get("status") == "completed"]
-        pass_rate = round(100 * sum(run.get("conclusion") == "success" for run in completed)
-                          / len(completed), 1) if completed else None
-        latest = history[0] if history else {}
+    for repo in catalog:
+        project = repo["full_name"]
+        current = project.lower() == DEFAULT_PROJECT.lower()
         result.append({
-            "id": name, "name": display_name, "full_name": name, "displayName": display_name,
-            "isCurrent": name == DEFAULT_PROJECT, "passRate": pass_rate,
-            "lastAuthor": latest.get("author") or "Unavailable",
-            "status": {"success": "Healthy", "failure": "Failing"}.get(
-                completed[0].get("conclusion") if completed else None, "Unknown"
-            ),
+            "id": project, "name": repo["name"], "full_name": project, "displayName": repo["name"],
+            "branch": repo.get("default_branch"), "remote_url": repo.get("html_url"),
+            "isCurrent": current, "passRate": None, "lastAuthor": PUBLIC_OWNER_LABEL,
+            "owner": PUBLIC_OWNER_LABEL, "status": "Unknown",
         })
-    return result
+    return sorted(result, key=lambda item: not item["isCurrent"])
 
 
 def simulation_state(run):
@@ -59,7 +54,10 @@ def history(request, db, project):
     for row in rows:
         payload = simulation_state(row) if row.source == "simulation" else row.payload
         local.append({key: value for key, value in payload.items() if key != "log"})
-    remote = request.app.state.github.runs(project)
+    github = request.app.state.github
+    remote = github.runs(project) or github.commit_estimates(project)
+    if remote:
+        local = [run for run in local if run["source"] != "seed"]
     merged = {run["id"]: run for run in [*local, *remote]}
     return sorted(merged.values(), key=lambda run: datetime.fromisoformat(run["created_at"]), reverse=True)
 
@@ -70,7 +68,7 @@ def runs(request: Request, project: ProjectName = DEFAULT_PROJECT, status: str =
     return [run for run in history(request, db, project)
             if (not status or status.lower() in {"all", run["status"], run["conclusion"]})
             and (not search or search.lower() in " ".join(str(run.get(key, "")) for key in
-                                                         ("id", "name", "title", "branch")).lower())]
+                                                         ("id", "name", "title", "branch", "author", "commit_sha")).lower())]
 
 
 @router.get("/pipeline/summary")
@@ -82,7 +80,8 @@ def summary(request: Request, project: ProjectName = DEFAULT_PROJECT, db: Sessio
     return {"project": project, "total_runs": len(items), "successful_runs": successful,
             "failed_runs": failed, "success_rate": round(100 * successful / len(durations), 1) if durations else 0,
             "average_duration_seconds": round(sum(durations) / len(durations), 1) if durations else 0,
-            "recent_runs": items[:10]}
+            "recent_runs": items[:10],
+            "estimated": any(run["source"] == "commit_estimate" for run in items)}
 
 
 @router.get("/pipeline/live")
@@ -128,6 +127,8 @@ def error_summary(run_id: str, request: Request, project: ProjectName = DEFAULT_
             raise HTTPException(409, "This run has no recorded failure.")
         return analyze(local.payload.get("log", ""))
     github = request.app.state.github
+    if len(run_id) == 40 and all(char in "0123456789abcdef" for char in run_id.lower()):
+        raise HTTPException(409, "Commit estimates do not have workflow failure logs.")
     run = github.run(project, run_id) if run_id.isascii() and run_id.isdecimal() else None
     if not run:
         raise HTTPException(404, "Run not found.")

@@ -8,7 +8,10 @@ from time import monotonic
 import httpx
 
 from ..config import GITHUB_TOKEN
-from .handoff_service import job_progress
+from .handoff_service import job_progress, simulation_progress
+
+PUBLIC_OWNER = "Shwetankjais"
+PUBLIC_OWNER_LABEL = "Shwetank Jaiswal (@Shwetankjais)"
 
 
 class GitHubService:
@@ -25,17 +28,47 @@ class GitHubService:
             cached = self.cache.get(path)
             if cached and monotonic() < cached[0]:
                 return cached[1]
-            try:
-                response = self.client.get(path)
-                response.raise_for_status()
-                data = response.json()
-            except (httpx.HTTPError, ValueError):
-                data = cached[1] if cached else {}
+        try:
+            response = self.client.get(path)
+            response.raise_for_status()
+            data = response.json()
+        except (httpx.HTTPError, ValueError):
+            data = cached[1] if cached else {}
+        with self.lock:
             self.cache[path] = (monotonic() + ttl, data)
             self.cache.move_to_end(path)
             if len(self.cache) > 256:
                 self.cache.popitem(last=False)
-            return data
+        return data
+
+    def repositories(self):
+        endpoint = f"/users/{PUBLIC_OWNER}/repos?sort=updated&per_page=20"
+        result = {}
+        page = 1
+        while True:
+            batch = self.get(endpoint if page == 1 else f"{endpoint}&page={page}", ttl=300)
+            if not isinstance(batch, list):
+                break
+            previous = len(result)
+            for repo in batch:
+                full_name = repo["full_name"]
+                if not repo.get("private") and full_name.split("/")[0].lower() == PUBLIC_OWNER.lower():
+                    result[full_name.lower()] = repo
+            if len(batch) < 20 or len(result) == previous:
+                break
+            page += 1
+        return list(result.values())
+
+    def commit_estimates(self, project):
+        if project.split("/")[0].lower() != PUBLIC_OWNER.lower():
+            return []
+        repo = self.get(f"/repos/{project}", ttl=300)
+        if not repo.get("full_name") or repo.get("private"):
+            return []
+        commits = self.get(f"/repos/{project}/commits?per_page=20", ttl=120)
+        if not isinstance(commits, list):
+            return []
+        return [estimate_commit(item, project, repo["default_branch"]) for item in commits]
 
     def runs(self, project):
         runs = self.get(f"/repos/{project}/actions/runs?per_page=30").get("workflow_runs", [])
@@ -81,5 +114,25 @@ def normalize_run(run, project):
         "branch": run.get("head_branch") or "", "status": run["status"],
         "conclusion": run.get("conclusion"), "created_at": run["created_at"],
         "duration_seconds": max(0, round(duration.total_seconds())), "url": run.get("html_url"),
+        "commit_sha": run.get("head_sha"), "author": (run.get("actor") or {}).get("login"),
         "attempt": run.get("run_attempt", 1), **job_progress([], run.get("conclusion")),
     }
+
+
+def estimate_commit(item, project, branch):
+    """Create a clearly labeled illustrative row, using real commit metadata."""
+    sha = item["sha"]
+    commit = item["commit"]
+    fingerprint = int(sha[:8], 16)
+    success = fingerprint % 10 != 0
+    author = commit.get("author") or {}
+    committer = commit.get("committer") or {}
+    stage = simulation_progress(100 if success else 64)
+    stage["handoff_alert"] = None
+    return {"id": sha, "project": project, "source": "commit_estimate", "estimated": True,
+            "name": "Commit-based estimate", "title": "Estimated · " + commit["message"].split("\n", 1)[0],
+            "branch": branch, "status": "completed", "conclusion": "success" if success else "failure",
+            "created_at": committer.get("date") or author["date"], "duration_seconds": 45 + fingerprint % 196,
+            "commit_sha": sha, "url": item["html_url"],
+            "author": author.get("name") or (item.get("author") or {}).get("login") or PUBLIC_OWNER_LABEL,
+            **stage}
