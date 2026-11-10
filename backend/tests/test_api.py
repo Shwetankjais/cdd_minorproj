@@ -470,3 +470,20 @@ def test_authenticated_folder_browse_and_open_by_name(collaboration, monkeypatch
         "folder_name": "DevOps_Lab", "dir": "Documents",
     }).json()
     assert chosen["kind"] == "folder" and not (Path(chosen["path"]) / ".git").exists()
+
+
+def test_browser_picker_resolves_legacy_desktop_prefix_across_roots(collaboration, monkeypatch, tmp_path):
+    from app.services import workspace_service
+
+    client, _ = collaboration
+    home = tmp_path / "host"
+    folder = home / "Downloads" / "PickedRepo"
+    folder.mkdir(parents=True)
+    monkeypatch.setattr(workspace_service, "HOST_HOME", home)
+    login = client.post("/api/auth/login", json={"email": "picker@example.test", "name": "Picker",
+                                                 "githubRepo": DEFAULT_PROJECT})
+    assert login.status_code == 200
+    roots = client.get("/api/workspaces/browse").json()
+    assert any(root["folder"] == "Downloads" for root in roots)
+    opened = client.post("/api/workspaces/open", json={"path": "~/Desktop/PickedRepo"})
+    assert opened.status_code == 200 and opened.json()["path"] == str(folder)

@@ -21,10 +21,14 @@ def workspaces(request: Request, session: UserSession = Depends(require_session)
 
 
 @router.get("/browse")
-def browse(dir: str | None = Query(default=None, max_length=4096),
+def browse(request: Request, dir: str | None = Query(default=None, max_length=4096),
            session: UserSession = Depends(require_session)):
     try:
-        return workspace_service.browse_folders(dir)
+        result = workspace_service.browse_folders(dir)
+        if not dir and getattr(request.state, "browser_session", False):
+            return [{"name": "cdd_minor", "path": str(git_service.PROJECT_ROOT), "folder": "cdd_minor"},
+                    *[{**folder, "folder": folder["name"]} for folder in result["folders"]]]
+        return result
     except (OSError, ValueError) as exc:
         raise HTTPException(400, "The folder could not be listed.") from exc
 
@@ -38,6 +42,11 @@ def open_folder(body: OpenWorkspace, request: Request, session: UserSession = De
     try:
         if body.folder_name:
             path = workspace_service.find_folder(body.folder_name, body.dir)
+        elif browser and body.path.startswith("~/Desktop/"):
+            # The committed picker sends a name prefixed with ~/Desktop regardless of the actual root.
+            selected = body.path.removeprefix("~/Desktop/")
+            if selected and "/" not in selected and "\\" not in selected:
+                path = workspace_service.find_folder(selected)
         workspace = workspace_service.open_workspace(path, session.profile["role"], body.name)
     except (git_service.GitError, OSError, ValueError) as exc:
         raise HTTPException(400, str(exc)) from exc
