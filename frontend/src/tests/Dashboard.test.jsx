@@ -126,7 +126,7 @@ describe('DevPulse Visual CI/CD Monitoring Dashboard', () => {
       fireEvent.click(failedRow);
 
       // Return to overview
-      const overviewBtn = screen.getByRole('button', { name: /Overview/i });
+      const overviewBtn = screen.getAllByRole('button', { name: /Overview/i })[0];
       fireEvent.click(overviewBtn);
 
       // Verify the badge shows Failed and at least one ✕ indicator or failed text appears

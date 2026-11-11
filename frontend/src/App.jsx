@@ -1,6 +1,9 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import Sidebar from './components/layout/Sidebar';
 import Header from './components/layout/Header';
+import Footer from './components/layout/Footer';
+import NotFoundView from './components/layout/NotFoundView';
+import ToastNotification from './components/common/ToastNotification';
 import KpiStatsGrid from './components/dashboard/KpiStatsGrid';
 import PipelineStageVisualizer from './components/dashboard/PipelineStageVisualizer';
 import BuildStatisticsOverviewCard from './components/dashboard/BuildStatisticsOverviewCard';
@@ -27,6 +30,20 @@ export default function App() {
     toggleGitDrawer,
   } = useThemeAndProject();
 
+  // Dynamic document.title per active tab view
+  useEffect(() => {
+    const titles = {
+      overview: 'Overview Dashboard — DevPulse',
+      workspaces: 'Workspaces Hub — DevPulse',
+      runs: 'Pipeline Runs & History — DevPulse',
+      diagnostics: 'Diagnostics & Failure Analysis — DevPulse',
+      analytics: 'Build Analytics & Metrics — DevPulse',
+      deployments: 'Deployments & Docker Telemetry — DevPulse',
+      'source-control': 'Source Control & Git Sync — DevPulse',
+    };
+    document.title = titles[activeTab] || 'DevPulse — Visual CI/CD Pipeline Monitoring & DevOps Cockpit';
+  }, [activeTab]);
+
   // If user is logged out, render the Auth & GitHub Gate
   if (!isAuthenticated) {
     return <AuthLoginView />;
@@ -39,19 +56,27 @@ export default function App() {
   const isAnalytics = activeTab === 'analytics';
   const isDeployments = activeTab === 'deployments';
   const isSourceControl = activeTab === 'source-control';
+  const isKnownTab =
+    isOverview ||
+    isRuns ||
+    isDiagnostics ||
+    isWorkspaces ||
+    isAnalytics ||
+    isDeployments ||
+    isSourceControl;
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[#FAF8F5] dark:bg-[#0B0E14] text-[#0F172A] dark:text-[#F8FAFC] transition-colors duration-150">
+    <div className="flex flex-col lg:flex-row min-h-screen lg:h-screen w-full overflow-x-hidden bg-[#FAF8F5] dark:bg-[#0B0E14] text-[#0F172A] dark:text-[#F8FAFC] transition-colors duration-150">
       {/* 1. Left Sidebar Navigation (Desktop Shell: h-screen flex-shrink-0) */}
       <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
 
-      {/* Main Content Area: h-screen overflow-hidden */}
-      <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
+      {/* Main Content Area: Responsive flex-col min-w-0 */}
+      <div className="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden">
         {/* 2. Top Header & Breadcrumb */}
         <Header />
 
         {/* Dynamic Dedicated View: Render ONLY the selected tab view (Zero Page Dump) */}
-        <main className="flex-1 p-3.5 sm:p-4 overflow-y-auto min-w-0">
+        <main className="flex-1 p-3.5 sm:p-4 md:p-6 overflow-y-auto overflow-x-hidden min-w-0 flex flex-col justify-between">
           <div className="max-w-7xl mx-auto w-full space-y-4">
             {/* Tab 1: Overview (Fits in 1 Viewport with ZERO Scroll - 2-Column Grid) */}
             {isOverview && (
@@ -72,6 +97,7 @@ export default function App() {
                 {/* Shortcut Navigation Pills to other dedicated tabs */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <button
+                    type="button"
                     onClick={() => setActiveTab('runs')}
                     className="p-3.5 rounded-xl bg-white dark:bg-[#181C24] border border-[#E2E8F0] dark:border-[#2A303C] hover:border-[#D4AF37]/50 shadow-sm text-left transition-all flex items-center justify-between group cursor-pointer"
                   >
@@ -88,6 +114,7 @@ export default function App() {
                   </button>
 
                   <button
+                    type="button"
                     onClick={() => setActiveTab('diagnostics')}
                     className="p-3.5 rounded-xl bg-white dark:bg-[#181C24] border border-[#E2E8F0] dark:border-[#2A303C] hover:border-[#D4AF37]/50 shadow-sm text-left transition-all flex items-center justify-between group cursor-pointer"
                   >
@@ -104,6 +131,7 @@ export default function App() {
                   </button>
 
                   <button
+                    type="button"
                     onClick={() => setActiveTab('analytics')}
                     className="p-3.5 rounded-xl bg-white dark:bg-[#181C24] border border-[#E2E8F0] dark:border-[#2A303C] hover:border-[#D4AF37]/50 shadow-sm text-left transition-all flex items-center justify-between group cursor-pointer"
                   >
@@ -168,8 +196,9 @@ export default function App() {
                     </p>
                   </div>
                   <button
+                    type="button"
                     onClick={toggleGitDrawer}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-mono font-semibold bg-[#D4AF37] text-[#0A1128] hover:bg-[#C5A059] transition-colors"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-mono font-semibold bg-[#D4AF37] text-[#0A1128] hover:bg-[#C5A059] transition-colors cursor-pointer"
                   >
                     <GitCommit className="w-3.5 h-3.5" />
                     <span>Open 1-Click Git Drawer</span>
@@ -177,14 +206,23 @@ export default function App() {
                 </div>
               </div>
             )}
+
+            {/* Fallback 404 Route for Unmatched Tabs */}
+            {!isKnownTab && <NotFoundView invalidTab={activeTab} />}
+          </div>
+
+          {/* Universal Footer Component */}
+          <div className="max-w-7xl mx-auto w-full mt-6">
+            <Footer />
           </div>
         </main>
       </div>
 
-      {/* Global Panels & Modals */}
+      {/* Global Panels, Modals & Toast Feedback */}
       <AiCopilotSidebar />
       <SourceControlDrawer />
       <RawLogsModal />
+      <ToastNotification />
     </div>
   );
 }

@@ -32,7 +32,7 @@ describe('DevPulse Upgrades: Auth Gate, Workspace Hub & AI Copilot', () => {
 
   it('navigates to Workspaces & Repo Hub view', () => {
     renderApp();
-    const workspaceNavBtn = screen.getByRole('button', { name: /Workspaces/i });
+    const workspaceNavBtn = screen.getAllByRole('button', { name: /Workspaces/i })[0];
     fireEvent.click(workspaceNavBtn);
 
     expect(screen.getByText(/DevPulse Collaborative Workspace Hub/i)).toBeInTheDocument();
@@ -120,5 +120,16 @@ describe('DevPulse Upgrades: Auth Gate, Workspace Hub & AI Copilot', () => {
     localStorage.setItem('devpulse_session_token', 'real-backend-session-token-xyz');
     const headers = getAuthHeaders();
     expect(headers['Authorization']).toBe('Bearer real-backend-session-token-xyz');
+  });
+
+  it('renders application footer with 2026 copyright, tel link, and mailto link', () => {
+    renderApp();
+
+    expect(screen.getByText(/© 2026 DevPulse • Shwetank Jaiswal/i)).toBeInTheDocument();
+    const telLink = screen.getByRole('link', { name: /\+91 98765 43210/i });
+    expect(telLink).toHaveAttribute('href', 'tel:+919876543210');
+
+    const mailLink = screen.getByRole('link', { name: /shwetankjaiswal@nie\.ac\.in/i });
+    expect(mailLink).toHaveAttribute('href', 'mailto:shwetankjaiswal@nie.ac.in');
   });
 });

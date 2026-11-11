@@ -80,8 +80,9 @@ export default function RunsHistoryTable() {
           {filterOptions.map((filter) => (
             <button
               key={filter}
+              type="button"
               onClick={() => setStatusFilter(filter)}
-              className={`px-2 py-1 rounded-md text-xs font-mono transition-colors ${
+              className={`px-2 py-1 rounded-md text-xs font-mono transition-colors cursor-pointer ${
                 statusFilter === filter
                   ? 'bg-[#0A1128] text-white dark:bg-[#D4AF37] dark:text-[#0A1128] font-semibold'
                   : 'bg-[#FAF8F5] dark:bg-[#1A1E29] text-[#64748B] dark:text-[#94A3B8] hover:text-[#0F172A] dark:hover:text-[#F8FAFC] border border-[#E2E8F0] dark:border-[#262930]'
@@ -107,7 +108,7 @@ export default function RunsHistoryTable() {
 
       {/* Table Container */}
       <div className="overflow-x-auto rounded-md border border-[#E2E8F0] dark:border-[#262930]">
-        <table className="w-full text-left text-xs border-collapse">
+        <table className="w-full min-w-[640px] text-left text-xs border-collapse">
           <thead>
             <tr className="bg-[#FAF8F5] dark:bg-[#0B0E14] text-[#64748B] dark:text-[#94A3B8] border-b border-[#E2E8F0] dark:border-[#262930] font-mono text-[11px]">
               <th className="py-2.5 px-3">Run ID</th>

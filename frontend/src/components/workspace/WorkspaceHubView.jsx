@@ -186,7 +186,7 @@ export default function WorkspaceHubView() {
           }`}
         >
           <span className="font-mono">{feedbackMsg.text}</span>
-          <button onClick={() => setFeedbackMsg(null)}>
+          <button type="button" onClick={() => setFeedbackMsg(null)} className="cursor-pointer">
             <X className="w-3.5 h-3.5" />
           </button>
         </div>
@@ -196,6 +196,7 @@ export default function WorkspaceHubView() {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-lg mx-auto">
         {/* Open Folder Button - Launches Native Finder / File Explorer */}
         <button
+          type="button"
           onClick={handleNativeOpenFolder}
           className="flex items-center justify-center gap-2.5 py-3 px-4 rounded-xl bg-[#0A1128] dark:bg-[#181C24] text-[#F8FAFC] hover:bg-[#142238] dark:hover:bg-[#1E232E] border border-[#D4AF37]/50 shadow-md transition-all group cursor-pointer"
         >
@@ -205,6 +206,7 @@ export default function WorkspaceHubView() {
 
         {/* Clone Repository Button */}
         <button
+          type="button"
           onClick={() => setShowCloneModal(true)}
           className="flex items-center justify-center gap-2.5 py-3 px-4 rounded-xl bg-white dark:bg-[#181C24] text-[#0F172A] dark:text-[#F8FAFC] hover:bg-[#FAF8F5] dark:hover:bg-[#1E232E] border border-[#E2E8F0] dark:border-[#2A303C] hover:border-[#D4AF37] shadow-md transition-all group cursor-pointer"
         >
@@ -267,6 +269,7 @@ export default function WorkspaceHubView() {
 
         {workspaces.length > 3 && (
           <button
+            type="button"
             onClick={() => setShowAllWorkspaces((prev) => !prev)}
             className="w-full text-center text-xs font-sans text-[#64748B] dark:text-[#94A3B8] hover:text-[#0F172A] dark:hover:text-[#F8FAFC] py-1 cursor-pointer font-medium"
           >
@@ -309,8 +312,9 @@ export default function WorkspaceHubView() {
                 <h3 className="font-bold text-sm text-[#0F172A] dark:text-[#F8FAFC]">Open Local Directory</h3>
               </div>
               <button
+                type="button"
                 onClick={() => setShowOpenModal(false)}
-                className="p-1 rounded-lg text-[#64748B] dark:text-[#94A3B8] hover:text-[#0F172A] dark:hover:text-[#F8FAFC]"
+                className="p-1 rounded-lg text-[#64748B] dark:text-[#94A3B8] hover:text-[#0F172A] dark:hover:text-[#F8FAFC] cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -400,8 +404,9 @@ export default function WorkspaceHubView() {
                 <h3 className="font-bold text-sm text-[#0F172A] dark:text-[#F8FAFC]">Clone Git Repository</h3>
               </div>
               <button
+                type="button"
                 onClick={() => setShowCloneModal(false)}
-                className="p-1 rounded-lg text-[#64748B] dark:text-[#94A3B8] hover:text-[#0F172A] dark:hover:text-[#F8FAFC]"
+                className="p-1 rounded-lg text-[#64748B] dark:text-[#94A3B8] hover:text-[#0F172A] dark:hover:text-[#F8FAFC] cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>

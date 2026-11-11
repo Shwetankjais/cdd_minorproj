@@ -17,6 +17,7 @@ import {
   Check,
 } from 'lucide-react';
 import { useThemeAndProject } from '../../context/ThemeAndProjectContext';
+import Footer from '../layout/Footer';
 import api from '../../services/api';
 
 export default function AuthLoginView() {
@@ -140,17 +141,26 @@ export default function AuthLoginView() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0B0E14] text-[#F8FAFC] flex flex-col justify-between selection:bg-[#D4AF37] selection:text-[#0A1128] font-sans antialiased">
+    <div className="min-h-screen w-full overflow-y-auto overflow-x-hidden bg-[#0B0E14] text-[#F8FAFC] flex flex-col justify-between selection:bg-[#D4AF37] selection:text-[#0A1128] font-sans antialiased py-2 px-2 sm:px-6">
       {/* Top Navigation Bar */}
       <header className="px-5 py-3 border-b border-[#2A303C] bg-[#0B0E14] flex items-center justify-between">
-        <div className="flex items-center gap-2 text-xs font-mono">
+        <button
+          type="button"
+          onClick={() => {
+            setErrorMsg(null);
+            setGithubUsername('');
+            setGithubProfile(null);
+          }}
+          className="flex items-center gap-2 text-xs font-mono hover:opacity-80 transition-opacity text-left cursor-pointer"
+          title="Reset DevPulse Gateway"
+        >
           <div className="w-6 h-6 rounded-md bg-[#181C24] border border-[#2A303C] flex items-center justify-center text-[#D4AF37]">
             <Activity className="w-3.5 h-3.5 stroke-[2.2]" />
           </div>
           <span className="font-bold text-[#F8FAFC]">DevPulse</span>
           <span className="text-[#64748B]">/</span>
           <span className="text-[#D4AF37]">connect</span>
-        </div>
+        </button>
 
         <div className="flex items-center gap-3 text-xs">
           <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#181C24] border border-[#2A303C] text-[#94A3B8] font-mono text-[11px]">
@@ -215,6 +225,10 @@ export default function AuthLoginView() {
                     <img
                       src={githubProfile.avatar_url}
                       alt={githubProfile.login}
+                      width="40"
+                      height="40"
+                      loading="lazy"
+                      decoding="async"
                       className="w-10 h-10 rounded-lg border border-emerald-500/50 object-cover"
                     />
                     <div>
@@ -446,8 +460,9 @@ export default function AuthLoginView() {
             <div className="flex items-center justify-between pb-2 border-b border-[#2A303C]">
               <h3 className="font-bold text-sm text-[#F8FAFC] font-sans">DevPulse Architecture & Methodology</h3>
               <button
+                type="button"
                 onClick={() => setShowMethodology(false)}
-                className="p-1 rounded-lg text-[#64748B] hover:text-[#F8FAFC]"
+                className="p-1 rounded-lg text-[#64748B] hover:text-[#F8FAFC] cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -469,6 +484,11 @@ export default function AuthLoginView() {
           </div>
         </div>
       )}
+
+      {/* Universal Responsive Footer */}
+      <div className="max-w-5xl w-full mx-auto px-4 mt-auto">
+        <Footer simple={true} />
+      </div>
     </div>
   );
 }

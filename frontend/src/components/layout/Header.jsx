@@ -40,6 +40,8 @@ export default function Header() {
     isAiCopilotOpen,
     toggleAiCopilot,
     activeTab,
+    setActiveTab,
+    showToast,
   } = useThemeAndProject();
 
   const [projectDropdownOpen, setProjectDropdownOpen] = useState(false);
@@ -107,8 +109,9 @@ export default function Header() {
         <div className="flex items-center gap-3">
           {/* Hamburger toggle button for <1024px */}
           <button
+            type="button"
             onClick={toggleSidebar}
-            className="p-1.5 rounded-lg text-[#0F172A] dark:text-[#F8FAFC] hover:bg-[#FAF8F5] dark:hover:bg-[#181C24] lg:hidden border border-[#E2E8F0] dark:border-[#2A303C] bg-white dark:bg-[#181C24] transition-colors"
+            className="p-1.5 rounded-lg text-[#0F172A] dark:text-[#F8FAFC] hover:bg-[#FAF8F5] dark:hover:bg-[#181C24] lg:hidden border border-[#E2E8F0] dark:border-[#2A303C] bg-white dark:bg-[#181C24] transition-colors cursor-pointer"
             aria-label="Toggle navigation sidebar"
           >
             <Menu className="w-4 h-4" />
@@ -116,10 +119,17 @@ export default function Header() {
 
           <div>
             <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="text-base sm:text-lg font-bold text-[#0F172A] dark:text-[#F8FAFC] tracking-tight flex items-center gap-1.5 font-sans">
-                <span>Welcome to DevPulse</span>
-                <span>👋</span>
-              </h1>
+              <button
+                type="button"
+                onClick={() => setActiveTab('overview')}
+                className="text-left cursor-pointer hover:opacity-85 transition-opacity"
+                title="Go to Overview"
+              >
+                <h1 className="text-base sm:text-lg font-bold text-[#0F172A] dark:text-[#F8FAFC] tracking-tight flex items-center gap-1.5 font-sans">
+                  <span>Welcome to DevPulse</span>
+                  <span>👋</span>
+                </h1>
+              </button>
               {activeTab !== 'overview' && (
                 <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[#FAF8F5] dark:bg-[#1E232E] text-[#64748B] dark:text-[#94A3B8] border border-[#E2E8F0] dark:border-[#2A303C]">
                   {getTabLabel(activeTab)}
@@ -133,8 +143,9 @@ export default function Header() {
               )}
               {user?.githubConnected === false && (
                 <button
+                  type="button"
                   onClick={toggleGithubConnection}
-                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-[#E63946]/10 text-[#E63946] border border-[#E63946]/30 hover:bg-[#E63946]/20 transition-colors font-sans"
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-[#E63946]/10 text-[#E63946] border border-[#E63946]/30 hover:bg-[#E63946]/20 transition-colors font-sans cursor-pointer"
                   title="Click to reconnect GitHub"
                 >
                   <AlertCircle className="w-3 h-3" />
@@ -157,6 +168,7 @@ export default function Header() {
           {/* Live Pipeline Simulation Trigger Button */}
           {!isSimulating ? (
             <button
+              type="button"
               onClick={startSimulation}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#D4AF37] hover:bg-[#C5A059] text-[#0A1128] shadow-sm transition-all font-sans cursor-pointer"
               title="Simulate 0% -> 100% pipeline run"
@@ -166,6 +178,7 @@ export default function Header() {
             </button>
           ) : (
             <button
+              type="button"
               onClick={resetSimulation}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-[#FAF8F5] dark:bg-[#181C24] hover:bg-[#E2E8F0] dark:hover:bg-[#1E232E] text-[#0F172A] dark:text-[#F8FAFC] border border-[#E2E8F0] dark:border-[#2A303C] transition-colors font-sans cursor-pointer shadow-sm"
             >
@@ -176,6 +189,7 @@ export default function Header() {
 
           {/* Quick 1-Click Source Control Drawer Button */}
           <button
+            type="button"
             onClick={toggleGitDrawer}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-[#E2E8F0] dark:border-[#2A303C] bg-white dark:bg-[#181C24] hover:bg-[#FAF8F5] dark:hover:bg-[#1E232E] text-[#0F172A] dark:text-[#F8FAFC] transition-colors shadow-sm font-sans cursor-pointer"
             title="Open 1-Click Git Drawer"
@@ -189,6 +203,7 @@ export default function Header() {
 
           {/* AI Copilot Toggle Button */}
           <button
+            type="button"
             onClick={toggleAiCopilot}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors shadow-sm font-sans cursor-pointer ${
               isAiCopilotOpen
@@ -206,6 +221,7 @@ export default function Header() {
           {/* Project Selection Dropdown */}
           <div className="relative" ref={projectRef}>
             <button
+              type="button"
               onClick={() => setProjectDropdownOpen((prev) => !prev)}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-[#E2E8F0] dark:border-[#2A303C] bg-white dark:bg-[#181C24] hover:bg-[#FAF8F5] dark:hover:bg-[#1E232E] text-[#0F172A] dark:text-[#F8FAFC] transition-colors shadow-sm font-sans cursor-pointer"
             >
@@ -235,11 +251,20 @@ export default function Header() {
                       return (
                         <button
                           key={proj.id || proj.displayName}
+                          type="button"
                           onClick={() => {
                             setActiveProject(proj);
                             setProjectDropdownOpen(false);
+                            if (showToast) {
+                              showToast({
+                                type: 'success',
+                                title: 'Repository Switched',
+                                message: `Active workspace switched to ${proj.displayName}.`,
+                                duration: 3500,
+                              });
+                            }
                           }}
-                          className={`w-full px-3.5 py-2 text-left text-xs flex items-center justify-between transition-colors ${
+                          className={`w-full px-3.5 py-2 text-left text-xs flex items-center justify-between transition-colors cursor-pointer ${
                             isSelected
                               ? 'bg-[#FAF8F5] dark:bg-[#1E232E] text-[#0A1128] dark:text-[#D4AF37] font-semibold border-l-2 border-[#D4AF37]'
                               : 'hover:bg-[#FAF8F5] dark:hover:bg-[#1E232E]/60 text-[#0F172A] dark:text-[#F8FAFC]'
@@ -266,6 +291,7 @@ export default function Header() {
           {/* Role Handoff Notification Bell */}
           <div className="relative" ref={notifRef}>
             <button
+              type="button"
               onClick={() => setNotifDropdownOpen((prev) => !prev)}
               className="relative p-2 rounded-lg border border-[#E2E8F0] dark:border-[#2A303C] bg-white dark:bg-[#181C24] hover:bg-[#FAF8F5] dark:hover:bg-[#1E232E] text-[#0F172A] dark:text-[#F8FAFC] transition-colors shadow-sm cursor-pointer"
               title="Role Handoff Notifications"
@@ -285,7 +311,11 @@ export default function Header() {
                     Handoff Alerts
                   </span>
                   {unreadCount > 0 && (
-                    <button onClick={markAllRead} className="text-[10px] text-[#D4AF37] hover:underline font-sans font-semibold cursor-pointer">
+                    <button
+                      type="button"
+                      onClick={markAllRead}
+                      className="text-[10px] text-[#D4AF37] hover:underline font-sans font-semibold cursor-pointer"
+                    >
                       Mark read
                     </button>
                   )}
@@ -318,6 +348,7 @@ export default function Header() {
 
           {/* Dark / Light Mode Toggle */}
           <button
+            type="button"
             onClick={toggleTheme}
             className="p-2 rounded-lg border border-[#E2E8F0] dark:border-[#2A303C] bg-white dark:bg-[#181C24] hover:bg-[#FAF8F5] dark:hover:bg-[#1E232E] text-[#0F172A] dark:text-[#F8FAFC] transition-colors shadow-sm cursor-pointer"
             title={`Switch to ${isDark ? 'Light' : 'Dark'} Mode`}
@@ -333,6 +364,7 @@ export default function Header() {
           {/* User Profile Avatar & Dropdown */}
           <div className="relative" ref={userRef}>
             <button
+              type="button"
               onClick={() => setUserDropdownOpen((prev) => !prev)}
               className="w-8 h-8 rounded-lg bg-[#0A1128] dark:bg-[#1E232E] text-[#D4AF37] font-sans font-bold text-xs flex items-center justify-center border border-[#D4AF37]/50 hover:border-[#D4AF37] shadow-sm transition-all cursor-pointer overflow-hidden"
               title={`${user?.name || user?.github_username || 'Developer'} (${user?.role || 'Developer'})`}
@@ -342,6 +374,10 @@ export default function Header() {
                 <img
                   src={user.avatar_url}
                   alt={user?.name || user?.github_username}
+                  width="32"
+                  height="32"
+                  loading="lazy"
+                  decoding="async"
                   className="w-full h-full object-cover"
                 />
               ) : user?.name ? (
@@ -364,6 +400,10 @@ export default function Header() {
                       <img
                         src={user.avatar_url}
                         alt={user.name}
+                        width="28"
+                        height="28"
+                        loading="lazy"
+                        decoding="async"
                         className="w-7 h-7 rounded-md object-cover border border-[#D4AF37]/40"
                       />
                     )}
@@ -407,6 +447,7 @@ export default function Header() {
                     {user?.githubRepo || (user?.github_username ? `${user.github_username}/cdd_minorproj` : 'github/repo')}
                   </p>
                   <button
+                    type="button"
                     onClick={toggleGithubConnection}
                     className="w-full text-center text-[10px] font-sans font-semibold text-[#D4AF37] hover:underline cursor-pointer"
                   >
@@ -417,6 +458,7 @@ export default function Header() {
                 {/* Logout Action */}
                 <div className="pt-2.5">
                   <button
+                    type="button"
                     onClick={() => {
                       setUserDropdownOpen(false);
                       logout();

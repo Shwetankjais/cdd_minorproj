@@ -130,8 +130,9 @@ export default function DeploymentHistoryView({ compact = false }) {
           {['1', '2', '24', 'all'].map((hours) => (
             <button
               key={hours}
+              type="button"
               onClick={() => setFilterHours(hours)}
-              className={`px-2 py-1 rounded-md text-xs font-mono transition-colors ${
+              className={`px-2 py-1 rounded-md text-xs font-mono transition-colors cursor-pointer ${
                 filterHours === hours
                   ? 'bg-[#0A1128] text-white dark:bg-[#D4AF37] dark:text-[#0A1128] font-semibold'
                   : 'bg-[#FAF8F5] dark:bg-[#1A1E29] text-[#64748B] dark:text-[#94A3B8] border border-[#E2E8F0] dark:border-[#262930]'
@@ -153,7 +154,7 @@ export default function DeploymentHistoryView({ compact = false }) {
 
       {/* Table of Deployments */}
       <div className="overflow-x-auto rounded-md border border-[#E2E8F0] dark:border-[#262930]">
-        <table className="w-full text-left text-xs border-collapse">
+        <table className="w-full min-w-[580px] text-left text-xs border-collapse">
           <thead>
             <tr className="bg-[#FAF8F5] dark:bg-[#0B0E14] text-[#64748B] dark:text-[#94A3B8] border-b border-[#E2E8F0] dark:border-[#262930] font-mono text-[11px]">
               <th className="py-2.5 px-3">Release Tag</th>
@@ -222,14 +223,16 @@ export default function DeploymentHistoryView({ compact = false }) {
                     <td className="py-2.5 px-3 text-right">
                       <div className="flex items-center justify-end gap-1.5">
                         <button
+                          type="button"
                           onClick={() => handleRedeploy(d.version)}
-                          className="px-2 py-0.5 rounded text-[10px] font-mono font-medium border border-[#E2E8F0] dark:border-[#262930] hover:border-[#D4AF37] text-[#0F172A] dark:text-[#F8FAFC] transition-colors"
+                          className="px-2 py-0.5 rounded text-[10px] font-mono font-medium border border-[#E2E8F0] dark:border-[#262930] hover:border-[#D4AF37] text-[#0F172A] dark:text-[#F8FAFC] transition-colors cursor-pointer"
                         >
                           Redeploy
                         </button>
                         <button
+                          type="button"
                           onClick={() => handleRollback(d.version)}
-                          className="px-2 py-0.5 rounded text-[10px] font-mono font-medium text-[#E63946] border border-[#E63946]/30 hover:bg-[#E63946]/10 transition-colors"
+                          className="px-2 py-0.5 rounded text-[10px] font-mono font-medium text-[#E63946] border border-[#E63946]/30 hover:bg-[#E63946]/10 transition-colors cursor-pointer"
                         >
                           Rollback
                         </button>

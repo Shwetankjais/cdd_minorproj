@@ -98,7 +98,15 @@ export default function Sidebar({ activeTab, setActiveTab }) {
       >
         {/* Brand Header */}
         <div className="p-4 border-b border-[#E2E8F0] dark:border-[#2A303C] flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
+          <button
+            type="button"
+            onClick={() => {
+              setActiveTab('overview');
+              closeSidebar();
+            }}
+            className="flex items-center gap-2.5 text-left cursor-pointer hover:opacity-85 transition-opacity"
+            title="DevPulse Overview Dashboard"
+          >
             <div className="w-8 h-8 rounded-lg bg-[#0A1128] dark:bg-[#1C1E24] border border-[#D4AF37]/40 flex items-center justify-center text-[#D4AF37] shadow-sm">
               <Activity className="w-4 h-4 stroke-[2.4]" />
             </div>
@@ -111,12 +119,13 @@ export default function Sidebar({ activeTab, setActiveTab }) {
               </div>
               <p className="text-[10px] text-[#64748B] dark:text-[#94A3B8]">CI/CD Pipeline Monitoring</p>
             </div>
-          </div>
+          </button>
 
           {/* Close button on mobile */}
           <button
+            type="button"
             onClick={closeSidebar}
-            className="p-1 rounded-md text-[#64748B] dark:text-[#94A3B8] hover:text-[#0F172A] dark:hover:text-[#F8FAFC] lg:hidden"
+            className="p-1 rounded-md text-[#64748B] dark:text-[#94A3B8] hover:text-[#0F172A] dark:hover:text-[#F8FAFC] lg:hidden cursor-pointer"
             aria-label="Close sidebar"
           >
             <X className="w-4 h-4" />
@@ -137,6 +146,7 @@ export default function Sidebar({ activeTab, setActiveTab }) {
               return (
                 <button
                   key={item.id}
+                  type="button"
                   onClick={() => {
                     if (item.onClick) {
                       item.onClick();
@@ -145,7 +155,7 @@ export default function Sidebar({ activeTab, setActiveTab }) {
                     }
                     closeSidebar();
                   }}
-                  className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition-all ${
+                  className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition-all cursor-pointer ${
                     active
                       ? 'bg-[#FAF8F5] dark:bg-[#1E232E] text-[#0F172A] dark:text-[#F8FAFC] font-semibold border border-[#D4AF37]/40 shadow-sm'
                       : 'text-[#64748B] dark:text-[#94A3B8] hover:text-[#0F172A] dark:hover:text-[#F8FAFC] hover:bg-[#FAF8F5] dark:hover:bg-[#181C24]/70 border border-transparent'
@@ -179,11 +189,12 @@ export default function Sidebar({ activeTab, setActiveTab }) {
               AI Companion
             </div>
             <button
+              type="button"
               onClick={() => {
                 toggleAiCopilot();
                 closeSidebar();
               }}
-              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition-all border ${
+              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition-all border cursor-pointer ${
                 isAiCopilotOpen
                   ? 'bg-[#181C24] text-[#D4AF37] border-[#D4AF37]/60 shadow-sm'
                   : 'text-[#64748B] dark:text-[#94A3B8] hover:text-[#0F172A] dark:hover:text-[#F8FAFC] border-transparent hover:border-[#E2E8F0] dark:hover:border-[#2A303C]'

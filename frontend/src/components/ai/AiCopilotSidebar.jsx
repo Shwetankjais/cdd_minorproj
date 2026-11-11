@@ -142,46 +142,56 @@ export default function AiCopilotSidebar() {
   if (!isAiCopilotOpen) return null;
 
   return (
-    <aside
-      className="fixed inset-y-0 right-0 z-40 w-80 sm:w-88 bg-white dark:bg-[#0B0E14] text-[#0F172A] dark:text-[#F8FAFC] border-l border-[#E2E8F0] dark:border-[#262930] shadow-xl flex flex-col justify-between transition-colors select-none"
-      aria-label="DevPulse AI Copilot"
-    >
-      {/* Header */}
-      <div className="p-3 border-b border-[#E2E8F0] dark:border-[#262930] bg-white dark:bg-[#0B0E14] flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className="w-6 h-6 rounded-md bg-[#FAF8F5] dark:bg-[#14171F] border border-[#E2E8F0] dark:border-[#262930] flex items-center justify-center text-[#D4AF37]">
-            <Sparkles className="w-3.5 h-3.5" />
-          </div>
-          <div>
-            <div className="flex items-center gap-1.5">
-              <span className="font-semibold text-xs">DevPulse Copilot</span>
-              <span className="text-[10px] font-mono px-1 py-0.2 rounded border border-[#E2E8F0] dark:border-[#262930] text-[#64748B] dark:text-[#94A3B8]">
-                v2.4
-              </span>
+    <>
+      {/* Mobile Backdrop Overlay */}
+      <div
+        className="fixed inset-0 bg-[#070D1F]/60 backdrop-blur-sm z-30 sm:hidden"
+        onClick={closeAiCopilot}
+        aria-hidden="true"
+      />
+
+      <aside
+        className="fixed inset-y-0 right-0 z-40 w-full sm:w-88 sm:max-w-md bg-white dark:bg-[#0B0E14] text-[#0F172A] dark:text-[#F8FAFC] border-l border-[#E2E8F0] dark:border-[#262930] shadow-xl flex flex-col justify-between transition-colors select-none"
+        aria-label="DevPulse AI Copilot"
+      >
+        {/* Header */}
+        <div className="p-3 border-b border-[#E2E8F0] dark:border-[#262930] bg-white dark:bg-[#0B0E14] flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 rounded-md bg-[#FAF8F5] dark:bg-[#14171F] border border-[#E2E8F0] dark:border-[#262930] flex items-center justify-center text-[#D4AF37]">
+              <Sparkles className="w-3.5 h-3.5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-1.5">
+                <span className="font-semibold text-xs font-sans">DevPulse Copilot</span>
+                <span className="text-[10px] font-mono px-1 py-0.2 rounded border border-[#E2E8F0] dark:border-[#262930] text-[#64748B] dark:text-[#94A3B8]">
+                  v2.4
+                </span>
+              </div>
             </div>
           </div>
-        </div>
 
-        <div className="flex items-center gap-1">
-          {messages.length > 0 && (
+          <div className="flex items-center gap-1">
+            {messages.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setMessages([])}
+                className="p-1 rounded-md text-[#64748B] dark:text-[#94A3B8] hover:text-[#0F172A] dark:hover:text-[#F8FAFC] transition-colors cursor-pointer"
+                title="Clear chat"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+              </button>
+            )}
             <button
-              onClick={() => setMessages([])}
-              className="p-1 rounded-md text-[#64748B] dark:text-[#94A3B8] hover:text-[#0F172A] dark:hover:text-[#F8FAFC] transition-colors"
-              title="Clear chat"
+              type="button"
+              onClick={closeAiCopilot}
+              className="p-1 rounded-md text-[#64748B] dark:text-[#94A3B8] hover:text-[#0F172A] dark:hover:text-[#F8FAFC] transition-colors cursor-pointer"
+              title="Close Copilot"
+              aria-label="Close Copilot"
             >
-              <RefreshCw className="w-3.5 h-3.5" />
+              <X className="w-3.5 h-3.5" />
             </button>
-          )}
-          <button
-            onClick={closeAiCopilot}
-            className="p-1 rounded-md text-[#64748B] dark:text-[#94A3B8] hover:text-[#0F172A] dark:hover:text-[#F8FAFC] transition-colors"
-            title="Close Copilot"
-            aria-label="Close Copilot"
-          >
-            <X className="w-3.5 h-3.5" />
-          </button>
+          </div>
         </div>
-      </div>
 
       {/* Chat Stream */}
       <div
@@ -209,8 +219,9 @@ export default function AiCopilotSidebar() {
               {quickActionChips.map((chip, idx) => (
                 <button
                   key={idx}
+                  type="button"
                   onClick={() => handleSendMessage(chip.prompt)}
-                  className="w-full text-left px-2.5 py-2 rounded-md bg-[#FAF8F5] dark:bg-[#14171F] hover:bg-[#E2E8F0]/50 dark:hover:bg-[#1A1E29] border border-[#E2E8F0] dark:border-[#262930] hover:border-[#D4AF37]/50 text-[#0F172A] dark:text-[#F8FAFC] text-[11px] font-mono transition-colors flex items-center justify-between group"
+                  className="w-full text-left px-2.5 py-2 rounded-md bg-[#FAF8F5] dark:bg-[#14171F] hover:bg-[#E2E8F0]/50 dark:hover:bg-[#1A1E29] border border-[#E2E8F0] dark:border-[#262930] hover:border-[#D4AF37]/50 text-[#0F172A] dark:text-[#F8FAFC] text-[11px] font-mono transition-colors flex items-center justify-between group cursor-pointer"
                 >
                   <span className="truncate mr-2">{chip.label}</span>
                   <ArrowRight className="w-3 h-3 text-[#94A3B8] group-hover:text-[#D4AF37] transition-colors flex-shrink-0" />
@@ -250,8 +261,9 @@ export default function AiCopilotSidebar() {
 
                       {msg.action?.type === 'SIMULATE_PIPELINE' && (
                         <button
+                          type="button"
                           onClick={() => handleExecuteAction(msg.action)}
-                          className="px-1.5 py-0.5 rounded text-[10px] font-mono font-medium bg-[#D4AF37] text-[#0A1128]"
+                          className="px-1.5 py-0.5 rounded text-[10px] font-mono font-medium bg-[#D4AF37] text-[#0A1128] cursor-pointer"
                         >
                           Run Again
                         </button>
@@ -259,8 +271,9 @@ export default function AiCopilotSidebar() {
 
                       {msg.action?.type === 'NAVIGATE' && msg.action.tab === 'source-control' && (
                         <button
+                          type="button"
                           onClick={toggleGitDrawer}
-                          className="px-1.5 py-0.5 rounded text-[10px] font-mono font-medium border border-[#D4AF37]/50 text-[#D4AF37]"
+                          className="px-1.5 py-0.5 rounded text-[10px] font-mono font-medium border border-[#D4AF37]/50 text-[#D4AF37] cursor-pointer"
                         >
                           Open Drawer
                         </button>
@@ -299,20 +312,22 @@ export default function AiCopilotSidebar() {
 
           <div className="flex items-center justify-between pt-1 border-t border-[#E2E8F0] dark:border-[#262930]/60 mt-1">
             <button
+              type="button"
               onClick={() => handleSendMessage('Summarize pipeline health and pass rate.')}
-              className="p-1 rounded text-[#64748B] dark:text-[#94A3B8] hover:text-[#0F172A] dark:hover:text-[#F8FAFC]"
+              className="p-1 rounded text-[#64748B] dark:text-[#94A3B8] hover:text-[#0F172A] dark:hover:text-[#F8FAFC] cursor-pointer"
               title="Quick summary"
             >
               <Plus className="w-3 h-3" />
             </button>
 
             <button
+              type="button"
               onClick={() => handleSendMessage()}
               disabled={!inputMessage.trim()}
-              className={`p-1 rounded transition-colors ${
+              className={`p-1 rounded transition-colors cursor-pointer ${
                 inputMessage.trim()
                   ? 'bg-[#D4AF37] text-[#0A1128]'
-                  : 'text-[#64748B] cursor-not-allowed'
+                  : 'text-[#64748B] cursor-not-allowed opacity-50'
               }`}
               aria-label="Send message"
             >
@@ -322,5 +337,6 @@ export default function AiCopilotSidebar() {
         </div>
       </div>
     </aside>
+    </>
   );
 }

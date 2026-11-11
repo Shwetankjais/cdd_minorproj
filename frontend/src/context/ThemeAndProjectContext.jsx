@@ -72,6 +72,22 @@ export function ThemeAndProjectProvider({ children }) {
 
   const isAuthenticated = Boolean(user);
 
+  // System Toast & Notification Banner
+  const [toast, setToast] = useState(null);
+
+  const showToast = useCallback((toastData) => {
+    if (!toastData) return;
+    if (typeof toastData === 'string') {
+      setToast({ id: Date.now(), type: 'info', message: toastData, duration: 4000 });
+    } else {
+      setToast({ id: Date.now(), type: 'info', duration: 4000, ...toastData });
+    }
+  }, []);
+
+  const hideToast = useCallback(() => {
+    setToast(null);
+  }, []);
+
   const login = useCallback(async ({ email, name, role, github_username, github_token, githubRepo, avatar_url }) => {
     const cleanUser = (github_username || (githubRepo ? githubRepo.split('/')[0] : 'Developer')).trim();
 
@@ -136,8 +152,15 @@ export function ThemeAndProjectProvider({ children }) {
       // ignore
     }
 
+    showToast({
+      type: 'success',
+      title: 'Welcome to DevPulse',
+      message: `Signed in as ${cleanUser}. Dynamic repositories synced.`,
+      duration: 4000,
+    });
+
     return activeUser;
-  }, []);
+  }, [showToast]);
 
   const connectGithub = useCallback(async ({ github_username, github_token }) => {
     const res = await api.connectGithub({ github_username, github_token });
@@ -153,9 +176,15 @@ export function ThemeAndProjectProvider({ children }) {
         localStorage.setItem('devpulse_user', JSON.stringify(updated));
         return updated;
       });
+      showToast({
+        type: 'success',
+        title: 'GitHub Connected',
+        message: `Successfully connected GitHub PAT for @${res.github.username || github_username}.`,
+        duration: 4000,
+      });
     }
     return res;
-  }, []);
+  }, [showToast]);
 
   const logout = useCallback(async () => {
     try {
@@ -168,7 +197,13 @@ export function ThemeAndProjectProvider({ children }) {
     localStorage.removeItem('devpulse_session_token');
     localStorage.removeItem('devpulse_user');
     localStorage.setItem('devpulse_logged_out', 'true');
-  }, []);
+    showToast({
+      type: 'info',
+      title: 'Signed Out',
+      message: 'You have been safely signed out of DevPulse.',
+      duration: 3000,
+    });
+  }, [showToast]);
 
   const toggleGithubConnection = useCallback(() => {
     setUser((prev) => {
@@ -202,18 +237,30 @@ export function ThemeAndProjectProvider({ children }) {
         return [res, ...prev];
       });
       setActiveWorkspace(res);
+      showToast({
+        type: 'success',
+        title: 'Workspace Loaded',
+        message: `Mounted local workspace: ${res.path || path}`,
+        duration: 3500,
+      });
     }
     return res;
-  }, []);
+  }, [showToast]);
 
   const cloneWorkspace = useCallback(async (params) => {
     const res = await api.cloneWorkspace(params);
     if (res) {
       setWorkspaces((prev) => [res, ...prev]);
       setActiveWorkspace(res);
+      showToast({
+        type: 'success',
+        title: 'Repository Cloned',
+        message: `Cloned into workspace: ${res.name}`,
+        duration: 3500,
+      });
     }
     return res;
-  }, []);
+  }, [showToast]);
 
   // 4. View Switching State without long vertical scrolling (Upgrade 3)
   const [activeTab, setActiveTab] = useState('overview');
@@ -447,6 +494,12 @@ export function ThemeAndProjectProvider({ children }) {
     setIsSimulating(true);
     setSimPercent(5);
     setSimStage('build');
+    showToast({
+      type: 'info',
+      title: 'Simulation Started',
+      message: 'Running live pipeline simulation: Build -> Test -> Docker -> Deploy.',
+      duration: 3500,
+    });
     setSimAlert({
       level: 'info',
       team: 'Dev Team',
@@ -490,6 +543,12 @@ export function ThemeAndProjectProvider({ children }) {
               nextTeam: 'Production',
               message: 'Pipeline completed! All tests passed and Docker containers deployed successfully.',
               isPreHandoff: false,
+            });
+            showToast({
+              type: 'success',
+              title: 'Pipeline Passed',
+              message: 'All 4 pipeline stages completed with 100% test coverage.',
+              duration: 4500,
             });
             fetchSummary(activeProject?.id);
             fetchRuns(activeProject?.id);
@@ -569,6 +628,12 @@ export function ThemeAndProjectProvider({ children }) {
             message: 'Pipeline finished with 100% success! Docker container live in production.',
             isPreHandoff: false,
           });
+          showToast({
+            type: 'success',
+            title: 'Pipeline Passed',
+            message: 'All 4 pipeline stages completed with 100% test coverage.',
+            duration: 4500,
+          });
           fetchSummary(activeProject?.id);
           fetchRuns(activeProject?.id);
           return 100;
@@ -576,7 +641,7 @@ export function ThemeAndProjectProvider({ children }) {
         return next;
       });
     }, 1000);
-  }, [activeProject, fetchSummary, fetchRuns]);
+  }, [activeProject, fetchSummary, fetchRuns, showToast]);
 
   const resetSimulation = useCallback(() => {
     if (simulationPollRef.current) {
@@ -649,6 +714,9 @@ export function ThemeAndProjectProvider({ children }) {
         getRoleTeamForPercent,
         notifications,
         setNotifications,
+        toast,
+        showToast,
+        hideToast,
       }}
     >
       {children}

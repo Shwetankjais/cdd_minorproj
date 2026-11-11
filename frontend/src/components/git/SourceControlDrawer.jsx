@@ -15,7 +15,7 @@ import { useThemeAndProject } from '../../context/ThemeAndProjectContext';
 import api from '../../services/api';
 
 export default function SourceControlDrawer() {
-  const { isGitDrawerOpen, setIsGitDrawerOpen, user, connectGithub } = useThemeAndProject();
+  const { isGitDrawerOpen, setIsGitDrawerOpen, user, connectGithub, showToast } = useThemeAndProject();
 
   const [repoUrl, setRepoUrl] = useState('');
   const [localPath, setLocalPath] = useState('');
@@ -107,6 +107,14 @@ export default function SourceControlDrawer() {
         });
       }
       setPatSuccessMsg('GitHub credential linked to session successfully!');
+      if (showToast) {
+        showToast({
+          type: 'success',
+          title: 'GitHub PAT Linked',
+          message: 'Personal Access Token linked to session successfully.',
+          duration: 3500,
+        });
+      }
       setTimeout(() => setPatSuccessMsg(''), 4000);
       setPatToken('');
     } catch (err) {
@@ -129,6 +137,14 @@ export default function SourceControlDrawer() {
         branch,
       });
       setCommitResult(result);
+      if (result && !result.error && showToast) {
+        showToast({
+          type: 'success',
+          title: 'Git Commit & Push Successful',
+          message: `Pushed ${selected.length} changed file(s) to ${branch}.`,
+          duration: 4000,
+        });
+      }
       await loadGitStatus(repository.path);
     } catch (error) {
       setCommitResult({ error: error.message });
@@ -199,8 +215,10 @@ export default function SourceControlDrawer() {
           </div>
 
           <button
+            type="button"
             onClick={() => setIsGitDrawerOpen(false)}
-            className="p-1.5 rounded-lg text-[#64748B] dark:text-[#94A3B8] hover:text-[#0F172A] dark:hover:text-[#F8FAFC] hover:bg-[#FAF8F5] dark:hover:bg-[#1E232E] transition-colors"
+            className="p-1.5 rounded-lg text-[#64748B] dark:text-[#94A3B8] hover:text-[#0F172A] dark:hover:text-[#F8FAFC] hover:bg-[#FAF8F5] dark:hover:bg-[#1E232E] transition-colors cursor-pointer"
+            aria-label="Close drawer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -314,9 +332,10 @@ export default function SourceControlDrawer() {
                 Changed Files ({files.length})
               </span>
               <button
+                type="button"
                 onClick={() => loadGitStatus(repository?.path)}
                 disabled={busy}
-                className="text-[11px] text-[#0A1128] dark:text-[#D4AF37] hover:underline flex items-center gap-1 font-semibold"
+                className="text-[11px] text-[#0A1128] dark:text-[#D4AF37] hover:underline flex items-center gap-1 font-semibold cursor-pointer"
               >
                 <RefreshCw className={`w-3 h-3 ${loadingFiles ? 'animate-spin' : ''}`} /> Refresh
               </button>
@@ -327,7 +346,7 @@ export default function SourceControlDrawer() {
                 type="button"
                 disabled={busy}
                 onClick={() => setSelected(selected.length === files.length ? [] : files.map((file) => file.path))}
-                className="font-semibold underline"
+                className="font-semibold underline cursor-pointer text-xs text-[#0F172A] dark:text-[#F8FAFC]"
               >
                 {selected.length === files.length ? 'Deselect All' : 'Select All'}
               </button>
