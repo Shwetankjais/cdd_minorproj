@@ -15,6 +15,8 @@ import {
   Loader2,
   AlertCircle,
   Check,
+  Phone,
+  Mail,
 } from 'lucide-react';
 import { useThemeAndProject } from '../../context/ThemeAndProjectContext';
 import Footer from '../layout/Footer';
@@ -397,6 +399,36 @@ export default function AuthLoginView() {
                     Demo Evaluator Login (Shwetankjais) →
                   </button>
                 </div>
+
+                {/* Official Developer Contact & Support */}
+                <div className="pt-2 border-t border-[#2A303C]/40 flex flex-wrap items-center justify-between gap-2 text-[10px] font-mono text-[#64748B]">
+                  <span className="text-[#94A3B8]">Support Hotline:</span>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <a
+                      href="tel:+916205070655"
+                      className="text-[#D4AF37] hover:underline flex items-center gap-1"
+                    >
+                      <Phone className="w-2.5 h-2.5" />
+                      <span>+91 6205070655</span>
+                    </a>
+                    <span>•</span>
+                    <a
+                      href="mailto:shwetank351@gmail.com"
+                      className="text-[#D4AF37] hover:underline flex items-center gap-1"
+                    >
+                      <Mail className="w-2.5 h-2.5" />
+                      <span>shwetank351@gmail.com</span>
+                    </a>
+                    <span>•</span>
+                    <a
+                      href="mailto:2025cs_shwetankjaiswal_g@nie.ac.in"
+                      className="text-[#D4AF37] hover:underline flex items-center gap-1"
+                    >
+                      <Mail className="w-2.5 h-2.5" />
+                      <span>2025cs_shwetankjaiswal_g@nie.ac.in</span>
+                    </a>
+                  </div>
+                </div>
               </form>
             </div>
 
@@ -480,6 +512,38 @@ export default function AuthLoginView() {
               <p className="text-[11px] text-[#64748B]">
                 At the 80% mark, an automated pre-notification alert notifies downstream release engineers before the deployment phase commences.
               </p>
+
+              {/* Official Developer Contact & Support */}
+              <div className="pt-3 border-t border-[#2A303C] space-y-1.5 text-xs font-mono">
+                <span className="text-[10px] text-[#64748B] uppercase tracking-wider block font-sans font-semibold">
+                  Official Developer & Support Contacts:
+                </span>
+                <div className="flex flex-wrap items-center gap-3 text-[11px]">
+                  <a
+                    href="tel:+916205070655"
+                    className="hover:text-[#D4AF37] transition-colors flex items-center gap-1.5 text-[#F8FAFC]"
+                  >
+                    <Phone className="w-3 h-3 text-[#D4AF37]" />
+                    <span>+91 6205070655</span>
+                  </a>
+                  <span className="text-[#2A303C] hidden sm:inline">•</span>
+                  <a
+                    href="mailto:shwetank351@gmail.com"
+                    className="hover:text-[#D4AF37] transition-colors flex items-center gap-1.5 text-[#F8FAFC]"
+                  >
+                    <Mail className="w-3 h-3 text-[#D4AF37]" />
+                    <span>shwetank351@gmail.com</span>
+                  </a>
+                  <span className="text-[#2A303C] hidden sm:inline">•</span>
+                  <a
+                    href="mailto:2025cs_shwetankjaiswal_g@nie.ac.in"
+                    className="hover:text-[#D4AF37] transition-colors flex items-center gap-1.5 text-[#F8FAFC]"
+                  >
+                    <Mail className="w-3 h-3 text-[#D4AF37]" />
+                    <span>2025cs_shwetankjaiswal_g@nie.ac.in</span>
+                  </a>
+                </div>
+              </div>
             </div>
           </div>
         </div>

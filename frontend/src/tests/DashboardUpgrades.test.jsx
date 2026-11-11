@@ -125,15 +125,19 @@ describe('DevPulse Upgrades: Auth Gate, Workspace Hub & AI Copilot', () => {
     expect(headers['Authorization']).toBe('Bearer real-backend-session-token-xyz');
   });
 
-  it('renders application footer with 2026 copyright, tel link, and mailto link', () => {
+  it('renders application footer with 2026 copyright, tel link, and both official mailto links', () => {
     renderApp();
 
     expect(screen.getByText(/© 2026 DevPulse • Shwetank Jaiswal/i)).toBeInTheDocument();
-    const telLink = screen.getByRole('link', { name: /\+91 98765 43210/i });
-    expect(telLink).toHaveAttribute('href', 'tel:+919876543210');
+    const telLinks = screen.getAllByRole('link', { name: /\+91 6205070655/i });
+    expect(telLinks.length).toBeGreaterThan(0);
+    expect(telLinks[0]).toHaveAttribute('href', 'tel:+916205070655');
 
-    const mailLink = screen.getByRole('link', { name: /shwetankjaiswal@nie\.ac\.in/i });
-    expect(mailLink).toHaveAttribute('href', 'mailto:shwetankjaiswal@nie.ac.in');
+    const primaryMailLink = screen.getAllByRole('link', { name: /shwetank351@gmail\.com/i })[0];
+    expect(primaryMailLink).toHaveAttribute('href', 'mailto:shwetank351@gmail.com');
+
+    const academicMailLink = screen.getAllByRole('link', { name: /2025cs_shwetankjaiswal_g@nie\.ac\.in/i })[0];
+    expect(academicMailLink).toHaveAttribute('href', 'mailto:2025cs_shwetankjaiswal_g@nie.ac.in');
   });
 
   it('renders NotFoundView when mounted on an unknown path (e.g. /random-path)', () => {

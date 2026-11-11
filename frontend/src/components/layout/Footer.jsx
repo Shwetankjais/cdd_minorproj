@@ -75,21 +75,30 @@ export default function Footer({ simple = false }) {
         {/* Right: Clickable Support Contacts (tel & mailto) */}
         <div className="flex flex-wrap items-center justify-center md:justify-end gap-3 text-[11px] font-mono">
           <a
-            href="tel:+919876543210"
+            href="tel:+916205070655"
             className="hover:text-[#D4AF37] transition-colors flex items-center gap-1 text-[#0F172A] dark:text-[#F8FAFC]"
             title="Call Support Hotline"
           >
             <Phone className="w-3 h-3 text-[#D4AF37]" />
-            <span>+91 98765 43210</span>
+            <span>+91 6205070655</span>
           </a>
           <span className="text-[#E2E8F0] dark:text-[#2A303C] hidden sm:inline">•</span>
           <a
-            href="mailto:shwetankjaiswal@nie.ac.in"
+            href="mailto:shwetank351@gmail.com"
             className="hover:text-[#D4AF37] transition-colors flex items-center gap-1 text-[#0F172A] dark:text-[#F8FAFC]"
-            title="Email Engineering Support"
+            title="Email Developer Support (Primary)"
           >
             <Mail className="w-3 h-3 text-[#D4AF37]" />
-            <span>shwetankjaiswal@nie.ac.in</span>
+            <span>shwetank351@gmail.com</span>
+          </a>
+          <span className="text-[#E2E8F0] dark:text-[#2A303C] hidden sm:inline">•</span>
+          <a
+            href="mailto:2025cs_shwetankjaiswal_g@nie.ac.in"
+            className="hover:text-[#D4AF37] transition-colors flex items-center gap-1 text-[#0F172A] dark:text-[#F8FAFC]"
+            title="Email Academic Engineering (NIE)"
+          >
+            <Mail className="w-3 h-3 text-[#D4AF37]" />
+            <span>2025cs_shwetankjaiswal_g@nie.ac.in</span>
           </a>
         </div>
       </div>
