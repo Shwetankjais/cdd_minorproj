@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import Sidebar from './components/layout/Sidebar';
 import Header from './components/layout/Header';
 import Footer from './components/layout/Footer';
@@ -30,8 +30,42 @@ export default function App() {
     toggleGitDrawer,
   } = useThemeAndProject();
 
+  // Route path validation helper:
+  // Checks if path matches '/', 'overview', 'workspaces', 'runs', 'diagnostics', 'analytics', 'deployments', or 'git'
+  const isKnownRoutePath = (pathname) => {
+    if (!pathname || pathname === '/' || pathname === '') return true;
+    const clean = pathname.replace(/^\/+/, '').replace(/\/+$/, '').toLowerCase();
+    if (!clean || clean === 'index.html') return true;
+    const validPaths = [
+      'overview',
+      'dashboard',
+      'workspaces',
+      'projects',
+      'runs',
+      'pipelines',
+      'history',
+      'diagnostics',
+      'tests',
+      'errors',
+      'analytics',
+      'deployments',
+      'git',
+      'source-control',
+    ];
+    return validPaths.includes(clean);
+  };
+
+  const [isUnknownPath, setIsUnknownPath] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return !isKnownRoutePath(window.location.pathname);
+  });
+
   // Dynamic document.title per active tab view
   useEffect(() => {
+    if (isUnknownPath) {
+      document.title = '404 Route Not Found — DevPulse';
+      return;
+    }
     const titles = {
       overview: 'Overview Dashboard — DevPulse',
       workspaces: 'Workspaces Hub — DevPulse',
@@ -42,9 +76,52 @@ export default function App() {
       'source-control': 'Source Control & Git Sync — DevPulse',
     };
     document.title = titles[activeTab] || 'DevPulse — Visual CI/CD Pipeline Monitoring & DevOps Cockpit';
-  }, [activeTab]);
+  }, [activeTab, isUnknownPath]);
 
-  // If user is logged out, render the Auth & GitHub Gate
+  // Sync route on mount and browser back/forward navigation
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const syncRouteFromLocation = () => {
+      const pathname = window.location.pathname || '/';
+      const clean = pathname.replace(/^\/+/, '').replace(/\/+$/, '').toLowerCase();
+      if (!isKnownRoutePath(pathname)) {
+        setIsUnknownPath(true);
+      } else {
+        setIsUnknownPath(false);
+        const routeMap = {
+          overview: 'overview',
+          dashboard: 'overview',
+          workspaces: 'workspaces',
+          projects: 'workspaces',
+          runs: 'runs',
+          pipelines: 'runs',
+          history: 'runs',
+          diagnostics: 'diagnostics',
+          tests: 'diagnostics',
+          errors: 'diagnostics',
+          analytics: 'analytics',
+          deployments: 'deployments',
+          git: 'source-control',
+          'source-control': 'source-control',
+        };
+        if (clean && routeMap[clean]) {
+          setActiveTab(routeMap[clean]);
+        }
+      }
+    };
+
+    syncRouteFromLocation();
+    window.addEventListener('popstate', syncRouteFromLocation);
+    return () => window.removeEventListener('popstate', syncRouteFromLocation);
+  }, [setActiveTab]);
+
+  // 1. If path does not match any recognized route on mount, render NotFoundView
+  if (isUnknownPath) {
+    return <NotFoundView onReset={() => setIsUnknownPath(false)} />;
+  }
+
+  // 2. If user is logged out, render the Auth & GitHub Gate
   if (!isAuthenticated) {
     return <AuthLoginView />;
   }
@@ -55,7 +132,7 @@ export default function App() {
   const isWorkspaces = activeTab === 'workspaces' || activeTab === 'projects';
   const isAnalytics = activeTab === 'analytics';
   const isDeployments = activeTab === 'deployments';
-  const isSourceControl = activeTab === 'source-control';
+  const isSourceControl = activeTab === 'source-control' || activeTab === 'git';
   const isKnownTab =
     isOverview ||
     isRuns ||
@@ -64,6 +141,11 @@ export default function App() {
     isAnalytics ||
     isDeployments ||
     isSourceControl;
+
+  // 3. If activeTab view-state handler is unrecognized, render NotFoundView
+  if (!isKnownTab) {
+    return <NotFoundView onReset={() => setIsUnknownPath(false)} />;
+  }
 
   return (
     <div className="flex flex-col lg:flex-row min-h-screen lg:h-screen w-full overflow-x-hidden bg-[#FAF8F5] dark:bg-[#0B0E14] text-[#0F172A] dark:text-[#F8FAFC] transition-colors duration-150">
@@ -206,9 +288,6 @@ export default function App() {
                 </div>
               </div>
             )}
-
-            {/* Fallback 404 Route for Unmatched Tabs */}
-            {!isKnownTab && <NotFoundView invalidTab={activeTab} />}
           </div>
 
           {/* Universal Footer Component */}

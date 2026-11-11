@@ -15,6 +15,9 @@ function renderApp() {
 describe('DevPulse Upgrades: Auth Gate, Workspace Hub & AI Copilot', () => {
   beforeEach(() => {
     localStorage.clear();
+    if (typeof window !== 'undefined' && window.history?.pushState) {
+      window.history.pushState({}, '', '/');
+    }
   });
 
   it('renders the AI Copilot toggle button and opens the copilot sidebar', () => {
@@ -131,5 +134,31 @@ describe('DevPulse Upgrades: Auth Gate, Workspace Hub & AI Copilot', () => {
 
     const mailLink = screen.getByRole('link', { name: /shwetankjaiswal@nie\.ac\.in/i });
     expect(mailLink).toHaveAttribute('href', 'mailto:shwetankjaiswal@nie.ac.in');
+  });
+
+  it('renders NotFoundView when mounted on an unknown path (e.g. /random-path)', () => {
+    window.history.pushState({}, '', '/random-path');
+    renderApp();
+
+    expect(screen.getByText(/Pipeline Route Not Found/i)).toBeInTheDocument();
+    expect(screen.getByText(/HTTP 404 — Route Unmapped/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Return to Overview Dashboard/i })).toBeInTheDocument();
+  });
+
+  it('resets path to / and sets active view to Overview when clicking Return to Overview Dashboard', () => {
+    window.history.pushState({}, '', '/unrecognized-pipeline-slug');
+    renderApp();
+
+    expect(screen.getByText(/Pipeline Route Not Found/i)).toBeInTheDocument();
+
+    const returnBtn = screen.getByRole('button', { name: /Return to Overview Dashboard/i });
+    fireEvent.click(returnBtn);
+
+    // Verify URL path is reset to '/'
+    expect(window.location.pathname).toBe('/');
+
+    // Verify Overview dashboard is now displayed
+    expect(screen.getByText(/Total Builds/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/Welcome to DevPulse/i).length).toBeGreaterThan(0);
   });
 });

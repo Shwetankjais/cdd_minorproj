@@ -15,6 +15,9 @@ function renderApp() {
 describe('DevPulse Visual CI/CD Monitoring Dashboard', () => {
   beforeEach(() => {
     localStorage.clear();
+    if (typeof window !== 'undefined' && window.history?.pushState) {
+      window.history.pushState({}, '', '/');
+    }
   });
 
   it('renders the header with branding and Linear breadcrumbs', () => {

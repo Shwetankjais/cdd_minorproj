@@ -263,7 +263,28 @@ export function ThemeAndProjectProvider({ children }) {
   }, [showToast]);
 
   // 4. View Switching State without long vertical scrolling (Upgrade 3)
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState(() => {
+    if (typeof window === 'undefined') return 'overview';
+    const clean = (window.location.pathname || '').replace(/^\/+/, '').replace(/\/+$/, '').toLowerCase();
+    if (!clean || clean === '' || clean === 'index.html') return 'overview';
+    const routeMap = {
+      overview: 'overview',
+      dashboard: 'overview',
+      workspaces: 'workspaces',
+      projects: 'workspaces',
+      runs: 'runs',
+      pipelines: 'runs',
+      history: 'runs',
+      diagnostics: 'diagnostics',
+      tests: 'diagnostics',
+      errors: 'diagnostics',
+      analytics: 'analytics',
+      deployments: 'deployments',
+      git: 'source-control',
+      'source-control': 'source-control',
+    };
+    return routeMap[clean] || 'not-found';
+  });
 
   // 5. Right-Column AI Agent Copilot State (Upgrade 4)
   const [isAiCopilotOpen, setIsAiCopilotOpen] = useState(false);
