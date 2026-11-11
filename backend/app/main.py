@@ -11,6 +11,8 @@ from .routers import ai_agent, auth, deployments, docker_monitor, git_control, p
 from .seed import seed
 from .services.github_service import GitHubService
 
+API_VERSION = "1.5.0"
+
 
 def create_app(database_url=DATABASE_URL, github=None):
     @asynccontextmanager
@@ -28,12 +30,24 @@ def create_app(database_url=DATABASE_URL, github=None):
                 app.state.github.client.close()
             app.state.engine.dispose()
 
-    app = FastAPI(title="DevPulse API", version="1.5.0", lifespan=lifespan)
-    app.add_middleware(CORSMiddleware, allow_origins=config.CORS_ORIGINS, allow_credentials=not config.CLOUD_MODE,
-                       allow_methods=["GET", "POST"], allow_headers=["Authorization", "Content-Type"])
+    app = FastAPI(title="DevPulse API", version=API_VERSION, lifespan=lifespan)
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=config.CORS_ORIGINS,
+        allow_origin_regex=config.CORS_VERCEL_ORIGIN if config.CLOUD_MODE else None,
+        allow_credentials=not config.CLOUD_MODE,
+        allow_methods=["GET", "POST"],
+        allow_headers=["Authorization", "Content-Type"],
+        expose_headers=["Authorization"],
+    )
     for router in (pipeline.router, deployments.router, git_control.router, docker_monitor.router,
                    auth.router, workspaces.router, ai_agent.router):
         app.include_router(router)
+
+    @app.get("/")
+    def status():
+        return {"service": app.title, "version": app.version, "status": "online",
+                "docs": app.docs_url, "health": "/api/health"}
 
     @app.get("/api/health")
     def health():

@@ -22,13 +22,17 @@ CLOUD_MODE = os.getenv("DEVPULSE_MODE", "local") == "cloud" or any(
 )
 CLOUD_WORKSPACE_ROOT = Path("/tmp/workspaces")
 CORS_ORIGINS = ["http://localhost:5173", "http://127.0.0.1:5173"]
+CORS_VERCEL_ORIGIN = r"https://[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.vercel\.app"
 for origin in os.getenv("DEVPULSE_CORS_ORIGINS", "").split(","):
     origin = origin.strip()
     if not origin:
         continue
+    if origin == "*" and CLOUD_MODE:
+        CORS_ORIGINS.append(origin)
+        continue
     url = urlsplit(origin)
     if (url.scheme != "https" or not url.hostname or url.username or "*" in origin
             or url.path or url.query or url.fragment):
-        raise ValueError("DEVPULSE_CORS_ORIGINS requires exact HTTPS origins without a path.")
+        raise ValueError("DEVPULSE_CORS_ORIGINS requires exact HTTPS origins without a path, or '*' in cloud mode.")
     CORS_ORIGINS.append(origin)
 SESSION_ENCRYPTION_KEY = os.getenv("DEVPULSE_SESSION_ENCRYPTION_KEY")

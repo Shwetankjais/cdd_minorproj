@@ -50,6 +50,10 @@ def client(tmp_path):
 
 
 def test_health_projects_and_seeded_history(client):
+    response = client.get("/")
+    assert response.status_code == 200
+    assert response.json() == {"service": "DevPulse API", "version": "1.5.0", "status": "online",
+                               "docs": "/docs", "health": "/api/health"}
     assert client.get("/api/health").json() == {"status": "ok", "database": "sqlite"}
     project = client.get("/api/projects").json()[0]
     assert project["id"] == DEFAULT_PROJECT
@@ -599,7 +603,7 @@ def test_hosted_sessions_isolate_repos_credentials_and_simulations(hosted):
     assert client.get("/api/auth/session", headers=b).status_code == 200
 
 
-def test_hosted_git_sandbox_and_cors(hosted, monkeypatch):
+def test_hosted_git_sandbox(hosted, monkeypatch):
     from app.services import git_service
 
     client, tmp_path = hosted
@@ -643,8 +647,43 @@ def test_hosted_git_sandbox_and_cors(hosted, monkeypatch):
 
     monkeypatch.setattr(git_service, "commit_push", push)
     assert client.post("/api/git/commit-push", json=body, headers=a).json()["pushed"]
-    preflight = {"Access-Control-Request-Method": "POST", "Access-Control-Request-Headers": "authorization"}
-    allowed = client.options("/api/auth/login", headers={**preflight, "Origin": "https://devpulse-test.vercel.app"})
-    rejected = client.options("/api/auth/login", headers={**preflight, "Origin": "https://another.vercel.app"})
-    assert allowed.headers["access-control-allow-origin"] == "https://devpulse-test.vercel.app"
-    assert "access-control-allow-origin" not in rejected.headers
+
+
+def test_hosted_bearer_cors(hosted):
+    client, _ = hosted
+    session = hosted_login(client, "userA")
+    preflight = {"Access-Control-Request-Method": "GET", "Access-Control-Request-Headers": "authorization, content-type"}
+    for origin in ("https://devpulse-test.vercel.app", "https://devpulse-git-demo-123.vercel.app", "http://localhost:5173"):
+        allowed = client.options("/api/auth/session", headers={**preflight, "Origin": origin})
+        assert allowed.status_code == 200
+        assert allowed.headers["access-control-allow-origin"] == origin
+        assert "Authorization" in allowed.headers["access-control-allow-headers"]
+        assert "access-control-allow-credentials" not in allowed.headers
+        response = client.get("/api/auth/session", headers={**session, "Origin": origin})
+        assert response.status_code == 200
+        assert response.headers["access-control-allow-origin"] == origin
+        assert response.headers["access-control-expose-headers"] == "Authorization"
+        assert "Authorization" not in response.headers
+
+    for origin in ("https://devpulse.vercel.app.example.org", "http://devpulse.vercel.app", "https://unlisted.example.org"):
+        rejected = client.options("/api/auth/session", headers={**preflight, "Origin": origin})
+        assert rejected.status_code == 400
+        assert "access-control-allow-origin" not in rejected.headers
+
+
+def test_cloud_wildcard_cors_has_no_cookie_credentials(hosted, monkeypatch):
+    from app import config
+
+    _, tmp_path = hosted
+    monkeypatch.setattr(config, "CORS_ORIGINS", ["*"])
+    app = create_app(f"sqlite:///{tmp_path / 'wildcard.db'}")
+    with TestClient(app) as client:
+        response = client.options("/api/auth/session", headers={
+            "Origin": "https://custom.example.org", "Access-Control-Request-Method": "GET",
+            "Access-Control-Request-Headers": "authorization",
+        })
+        assert response.status_code == 200
+        assert response.headers["access-control-allow-origin"] == "*"
+        assert "Authorization" in response.headers["access-control-allow-headers"]
+        assert "access-control-allow-credentials" not in response.headers
+        assert client.get("/api/auth/session", headers={"Origin": "https://custom.example.org"}).status_code == 401

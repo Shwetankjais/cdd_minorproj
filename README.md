@@ -30,6 +30,20 @@ Frontend versions reflect [the npm lockfile](frontend/package-lock.json). The ba
 
 ## 3. Project Architecture
 
+In production, **Vercel serves the React dashboard** and the browser calls the [DevPulse Docker API on Render](https://devpulse-backend-3bdp.onrender.com/) over HTTPS. FastAPI verifies bearer sessions, reads GitHub data, and stores session state in the configured database. The hosted stack does not depend on local Docker Compose or host directory mounts.
+
+```text
+Phone or laptop browser -> Vercel (React/Vite)
+          |
+          +-- HTTPS /api + bearer token -> Render (FastAPI in Docker)
+                                                 |-- Session database
+                                                 +-- GitHub API
+```
+
+The same hosted bearer-session flow is used on laptops and phones and does not require cross-site cookies. Each device signs in separately. The v1.6 frontend track covers responsive login scrolling, a mobile drawer, a custom 404, SEO metadata, and accessibility polish. Frontend layout and interaction checks are separate from the backend's CORS tests.
+
+Local development uses the following topology:
+
 ```text
                          localhost
   +-----------------------------------------------------------+
@@ -230,24 +244,24 @@ Open [http://localhost:5173](http://localhost:5173/). Stop any Compose services 
 
 ### Option C: Public deployment with Vercel and Render or Railway
 
-Deploy the API as a standalone Docker service. The hosted service does not need the local Compose file or a host directory mount.
+The production frontend runs on Vercel and uses `https://devpulse-backend-3bdp.onrender.com/api`. To check the Docker backend directly, open the [API status page](https://devpulse-backend-3bdp.onrender.com/), [Swagger docs](https://devpulse-backend-3bdp.onrender.com/docs), or [database readiness endpoint](https://devpulse-backend-3bdp.onrender.com/api/health). The root status response reports API version `1.5.0`; the dashboard release is tracked separately below.
 
 **Render**
 
 1. In Render, create a Blueprint from this repository and select `main`. The root `render.yaml` builds `backend/Dockerfile`, creates a PostgreSQL database, injects its internal connection string, and generates the session encryption secret.
-2. Set `DEVPULSE_CORS_ORIGINS` to the exact HTTPS Vercel origin, such as `https://your-project.vercel.app`. Use a comma-separated list for additional approved origins. Apply the Blueprint.
+2. HTTPS Vercel production and preview subdomains and `http://localhost:5173` are allowed in cloud mode. Set `DEVPULSE_CORS_ORIGINS` to any additional exact HTTPS origins (comma-separated). Use `DEVPULSE_CORS_ORIGINS=*` only if the hosted API must support browsers on arbitrary domains; it does not enable cross-origin cookies. Apply the Blueprint.
 3. Open the API service’s public HTTPS URL and verify that `/api/health` returns `{"status":"ok","database":"postgresql"}`. [Render Blueprint reference](https://render.com/docs/blueprint-spec)
 
 **Railway**
 
 1. Create a project from this GitHub repository. Set the API service’s Root Directory to `/backend` and its Config File Path to `/railway.json` so Railway uses the root manifest with the backend Docker build context.
-2. Add a PostgreSQL service. On the API service, set `DATABASE_URL` to a reference such as `${{Postgres.DATABASE_URL}}` (match the actual database service name), set `DEVPULSE_MODE=cloud`, and set `DEVPULSE_CORS_ORIGINS` to the exact Vercel HTTPS origin.
+2. Add a PostgreSQL service. On the API service, set `DATABASE_URL` to a reference such as `${{Postgres.DATABASE_URL}}` (match the actual database service name) and set `DEVPULSE_MODE=cloud`. Set `DEVPULSE_CORS_ORIGINS` if you use an additional custom HTTPS origin.
 3. Generate a secret with `openssl rand -hex 32` and add it as the API service variable `DEVPULSE_SESSION_ENCRYPTION_KEY`. Keep the same key across deployments that share the database. Generate a public domain under Networking and check `/api/health`. SQLite works for a disposable single-instance test when `DATABASE_URL` is omitted. Its data is lost if the container filesystem is replaced. [Railway config as code](https://docs.railway.com/config-as-code) · [Railway PostgreSQL](https://docs.railway.com/databases/postgresql)
 
 **Vercel**
 
 1. Import the same GitHub repository, set the Root Directory to `frontend`, select Vite, and use `dist` as the output directory.
-2. Set `VITE_API_URL` to the Render or Railway public HTTPS URL **including** `/api`. Deploy the frontend, add its exact origin to the API allowlist if needed, and redeploy the API. [Vite on Vercel](https://vercel.com/docs/frameworks/frontend/vite)
+2. Set `VITE_API_URL` to the Render or Railway public HTTPS URL **including** `/api`, then deploy the frontend. For a custom domain, add its exact origin to the API allowlist and redeploy the API. [Vite on Vercel](https://vercel.com/docs/frameworks/frontend/vite)
 3. Before sharing the link, ensure the frontend collects `github_username`, reads `session_token` from login, and sends `Authorization: Bearer <session_token>` on session, project, pipeline, workspace, and Git requests. Clear the token on logout or `401`. Avoid sending the local demo write token. Disable the native host folder picker in hosted mode and use the server clone and workspace list instead.
 4. Sign in as two different GitHub users and confirm each project list matches its own account. A username alone selects public data. A GitHub token verifies account ownership and is required for Git pushes. Keep GitHub tokens and the session encryption key out of Vercel build variables.
 
@@ -257,6 +271,7 @@ The cloud API accepts `github_user` as a public catalog selector when the sessio
 
 | Method and route | Purpose |
 | --- | --- |
+| `GET /` | Show API status, version, and links to docs and database readiness. |
 | `POST /api/auth/login` | Start a session with a name, email, role, and optional GitHub username and PAT. |
 | `GET /api/auth/session` | Read the session profile, GitHub verification, and active workspace. |
 | `POST /api/auth/connect-github` | Validate a GitHub username and PAT against the collaborative repository. |
@@ -322,3 +337,4 @@ For a CI walkthrough, trigger a simulation and watch the role handoff progress. 
 | Selective Git writes | Added explicit file selection, bearer-token entry, and real commit and push results in the Git drawer. |
 | v1.5.0 | Added bearer sessions, verified GitHub linking, role-aware workspace state, and a chat executor with optional provider tool calling. |
 | Cloud deployment preparation | Scoped GitHub catalogs, pipeline simulations, and clone directories to hosted sessions. Added encrypted GitHub credentials, an origin allowlist, and Render and Railway manifests. |
+| v1.6.0 | Added the root API status endpoint and hosted bearer CORS for Vercel previews. The companion frontend release covers responsive laptop and mobile UX, a mobile drawer, a custom 404, SEO metadata, and accessibility polish. |
