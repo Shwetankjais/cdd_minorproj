@@ -1,3 +1,4 @@
+website: https://cdd-minorproj.vercel.app/
 # DevPulse: Visual CI/CD Pipeline Monitoring Dashboard
 
 [![DevPulse CI/CD](https://github.com/Shwetankjais/cdd_minorproj/actions/workflows/ci-cd.yml/badge.svg?branch=main)](https://github.com/Shwetankjais/cdd_minorproj/actions/workflows/ci-cd.yml)
